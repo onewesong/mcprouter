@@ -26,5 +26,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringP("config", "c", ".env.toml", "config file (default is .env.toml)")
+	rootCmd.PersistentFlags().StringP("version", "v", "0.0.1", "version")
 }

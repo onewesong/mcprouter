@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const defaultPort = 8025
+var configFile string
 
 func startServer(port int) {
 	s := sse.NewSSEServer()
@@ -25,19 +25,14 @@ var serverCmd = &cobra.Command{
 	Short: "start sse server",
 	Long:  `start sse proxy server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cfgFile, err := cmd.PersistentFlags().GetString("config")
-		if err != nil {
-			cfgFile = ".env.toml"
-		}
-
-		if err := util.InitConfigWithFile(cfgFile); err != nil {
-			fmt.Printf("init config failed with file: %s, %v\n", cfgFile, err)
+		if err := util.InitConfigWithFile(configFile); err != nil {
+			fmt.Printf("init config failed with file: %s, %v\n", configFile, err)
 			return
 		}
 
 		port := viper.GetInt("server.port")
 		if port == 0 {
-			port = defaultPort
+			port = 8025
 		}
 
 		fmt.Printf("starting server on port: %d\n", port)
@@ -47,4 +42,6 @@ var serverCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
+
+	serverCmd.Flags().StringVarP(&configFile, "config", "c", ".env.toml", "config file (default is .env.toml)")
 }
