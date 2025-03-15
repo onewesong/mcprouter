@@ -7,6 +7,7 @@ import (
 	"github.com/chatmcp/mcprouter/service/sse"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 )
 
 // SSE is a handler for the sse endpoint
@@ -17,9 +18,16 @@ func SSE(c echo.Context) error {
 	}
 
 	key := c.Param("key")
+	if key == "" {
+		return c.String(http.StatusBadRequest, "Key is required")
+	}
 
-	// todo: get server info by key
-	fmt.Printf("key: %s\n", key)
+	mcpServerCommand := viper.GetString(fmt.Sprintf("mcp_server_commands.%s", key))
+	if mcpServerCommand == "" {
+		return c.String(http.StatusBadRequest, "MCP server not found")
+	}
+
+	fmt.Printf("mcp server command: %s\n", mcpServerCommand)
 
 	writer, err := sse.NewSSEWriter(c)
 	if err != nil {
@@ -28,7 +36,7 @@ func SSE(c echo.Context) error {
 
 	// store session
 	sessionID := uuid.New().String()
-	session := sse.NewSSESession(writer, key)
+	session := sse.NewSSESession(writer, mcpServerCommand)
 	ctx.StoreSession(sessionID, session)
 	defer ctx.DeleteSession(sessionID)
 

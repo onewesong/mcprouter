@@ -5,16 +5,17 @@ import (
 
 	"github.com/chatmcp/mcprouter/router"
 	"github.com/chatmcp/mcprouter/service/sse"
+	"github.com/chatmcp/mcprouter/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-var port int
+const defaultPort = 8025
 
-func startServer() {
+func startServer(port int) {
 	s := sse.NewSSEServer()
 
 	s.Route(router.Route)
-
 	s.Start(port)
 }
 
@@ -22,18 +23,28 @@ func startServer() {
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "start sse server",
-	Long:  `start sse server as MCP Server Proxy`,
+	Long:  `start sse proxy server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if port == 0 {
-			fmt.Println("port is required")
+		cfgFile, err := cmd.PersistentFlags().GetString("config")
+		if err != nil {
+			cfgFile = ".env.toml"
+		}
+
+		if err := util.InitConfigWithFile(cfgFile); err != nil {
+			fmt.Printf("init config failed with file: %s, %v\n", cfgFile, err)
 			return
 		}
-		startServer()
+
+		port := viper.GetInt("server.port")
+		if port == 0 {
+			port = defaultPort
+		}
+
+		fmt.Printf("starting server on port: %d\n", port)
+		startServer(port)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
-
-	serverCmd.Flags().IntVarP(&port, "port", "p", 8025, "port to run the server on")
 }

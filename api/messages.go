@@ -1,10 +1,11 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
-	"github.com/chatmcp/mcprouter/service/proxy"
+	"github.com/chatmcp/mcprouter/service/mcpclient"
 	"github.com/chatmcp/mcprouter/service/sse"
 	"github.com/labstack/echo/v4"
 )
@@ -31,7 +32,22 @@ func Messages(c echo.Context) error {
 		return ctx.JSONRPCError(jsonrpc.ErrorParseError, nil)
 	}
 
-	response := proxy.HandleRequest(request)
+	client := session.Client()
+
+	if request.Method == "initialize" && client == nil {
+		command := session.Command()
+		_client, err := mcpclient.NewStdioClient(command)
+		if err != nil {
+			fmt.Printf("failed to create mcp client: %v\n", err)
+			return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
+		}
+		session.SetClient(_client)
+		ctx.StoreSession(sessionID, session)
+
+		client = _client
+	}
+
+	response := sse.ForwardRequest(client, request)
 
 	if response != nil {
 		session.SendMessage(response.String())

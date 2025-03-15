@@ -20,4 +20,5 @@ var (
 	ErrorMethodNotFound = NewError(-32601, "Method not found", nil)
 	ErrorInvalidParams  = NewError(-32602, "Invalid params", nil)
 	ErrorInternalError  = NewError(-32603, "Internal error", nil)
+	ErrorProxyError     = NewError(-32000, "Proxy error", nil)
 )
