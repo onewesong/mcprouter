@@ -9,7 +9,7 @@ import (
 
 // ForwardRequest forwards a JSON-RPC request to the MCP server and returns the response
 func ForwardRequest(client *mcpclient.StdioClient, request *jsonrpc.Request) *jsonrpc.Response {
-	// fmt.Printf("forward request: %+v\n", request)
+	fmt.Printf("forward request: %+v\n", request)
 
 	response, err := client.SendRequest(request)
 	if err != nil {
@@ -17,7 +17,7 @@ func ForwardRequest(client *mcpclient.StdioClient, request *jsonrpc.Request) *js
 		return jsonrpc.NewErrorResponse(jsonrpc.ErrorProxyError, request.ID)
 	}
 
-	// fmt.Printf("forward response: %+v\n", response)
+	fmt.Printf("forward response: %+v\n", response)
 
 	return response
 }
