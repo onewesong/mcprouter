@@ -1,10 +1,6 @@
 module github.com/chatmcp/mcprouter
 
-go 1.22
-
-toolchain go1.24.0
-
-replace github.com/mark3labs/mcp-go => /Users/idoubi/code/all-in-aigc/github/mcp-go
+go 1.18
 
 require (
 	github.com/google/uuid v1.6.0
