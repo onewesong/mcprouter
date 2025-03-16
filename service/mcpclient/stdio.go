@@ -113,8 +113,6 @@ func (c *StdioClient) SendRequest(request *jsonrpc.Request) (*jsonrpc.Response, 
 	}
 	message = append(message, '\n')
 
-	fmt.Printf("send message to backend mcp server: %s\n", message)
-
 	if request.ID == nil {
 		// notification message
 		if _, err := c.stdin.Write(message); err != nil {
@@ -144,4 +142,14 @@ func (c *StdioClient) SendRequest(request *jsonrpc.Request) (*jsonrpc.Response, 
 			return response, nil
 		}
 	}
+}
+
+// Close closes the client.
+func (c *StdioClient) Close() error {
+	close(c.done)
+	if err := c.stdin.Close(); err != nil {
+		return fmt.Errorf("failed to close stdin: %w", err)
+	}
+
+	return c.cmd.Wait()
 }

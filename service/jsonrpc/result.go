@@ -1,8 +1,10 @@
 package jsonrpc
 
+// Result is a JSON-RPC result.
 type Result struct {
 }
 
+// InitializeResult is the result of the initialize method.
 type InitializeResult struct {
 	Result
 	ProtocolVersion string             `json:"protocolVersion"`

@@ -38,6 +38,7 @@ func GetSSEContext(c echo.Context) *SSEContext {
 	return nil
 }
 
+// GetSession returns the session from the sessions store
 func (c *SSEContext) GetSession(key string) *SSESession {
 	if session, ok := c.sessions.Load(key); ok {
 		return session.(*SSESession)
@@ -46,14 +47,17 @@ func (c *SSEContext) GetSession(key string) *SSESession {
 	return nil
 }
 
+// StoreSession stores the session in the sessions store
 func (c *SSEContext) StoreSession(key string, session *SSESession) {
 	c.sessions.Store(key, session)
 }
 
+// DeleteSession deletes the session from the sessions store
 func (c *SSEContext) DeleteSession(key string) {
 	c.sessions.Delete(key)
 }
 
+// GetJSONRPCRequest returns the JSON-RPC request from the request body
 func (c *SSEContext) GetJSONRPCRequest() (*jsonrpc.Request, error) {
 	req := c.Request()
 
@@ -70,12 +74,14 @@ func (c *SSEContext) GetJSONRPCRequest() (*jsonrpc.Request, error) {
 	return request, nil
 }
 
+// JSONRPCError returns a JSON-RPC error response
 func (c *SSEContext) JSONRPCError(err *jsonrpc.Error, id interface{}) error {
 	response := jsonrpc.NewErrorResponse(err, id)
 
 	return c.JSON(http.StatusBadRequest, response)
 }
 
-func (c *SSEContext) JSONRPC(response *jsonrpc.Response) error {
+// JSONRPCResponse returns a JSON-RPC response
+func (c *SSEContext) JSONRPCResponse(response *jsonrpc.Response) error {
 	return c.JSON(http.StatusAccepted, response)
 }

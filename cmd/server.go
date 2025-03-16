@@ -12,6 +12,7 @@ import (
 
 var configFile string
 
+// startServer starts the sse server
 func startServer(port int) {
 	s := sse.NewSSEServer()
 

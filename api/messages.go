@@ -38,7 +38,7 @@ func Messages(c echo.Context) error {
 		command := session.Command()
 		_client, err := mcpclient.NewStdioClient(command)
 		if err != nil {
-			fmt.Printf("failed to create mcp client: %v\n", err)
+			fmt.Printf("connect to mcp server failed: %v\n", err)
 			return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
 		}
 		session.SetClient(_client)
@@ -47,11 +47,16 @@ func Messages(c echo.Context) error {
 		client = _client
 	}
 
+	if client == nil {
+		return nil
+	}
+
 	response := sse.ForwardRequest(client, request)
 
 	if response != nil {
 		session.SendMessage(response.String())
 	}
 
-	return ctx.JSONRPC(response)
+	// notification message
+	return ctx.JSONRPCResponse(response)
 }

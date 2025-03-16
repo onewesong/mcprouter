@@ -7,8 +7,9 @@ import (
 	"github.com/chatmcp/mcprouter/service/mcpclient"
 )
 
+// ForwardRequest forwards a JSON-RPC request to the MCP server and returns the response
 func ForwardRequest(client *mcpclient.StdioClient, request *jsonrpc.Request) *jsonrpc.Response {
-	fmt.Printf("forward request: %+v\n", request)
+	// fmt.Printf("forward request: %+v\n", request)
 
 	response, err := client.SendRequest(request)
 	if err != nil {
@@ -16,22 +17,7 @@ func ForwardRequest(client *mcpclient.StdioClient, request *jsonrpc.Request) *js
 		return jsonrpc.NewErrorResponse(jsonrpc.ErrorProxyError, request.ID)
 	}
 
-	fmt.Printf("forward response: %+v\n", response)
+	// fmt.Printf("forward response: %+v\n", response)
 
 	return response
-
-	// switch request.Method {
-	// case "initialize":
-	// 	return HandleInitialize(request)
-	// case "notifications/initialized":
-	// 	return HandleInitializedNotification(request)
-	// case "tools/list":
-	// 	return HandleListTools(request)
-	// case "tools/call":
-	// 	return HandleCallTool(request)
-	// case "notifications/cancelled":
-	// 	return HandleCancelNotification(request)
-	// default:
-	// 	return jsonrpc.NewErrorResponse(jsonrpc.ErrorMethodNotFound, request.ID)
-	// }
 }
