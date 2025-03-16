@@ -7,7 +7,7 @@ SSE Proxy for MCP Servers
 1. edit config file
 
 ```shell
-cp .env.toml.example .env.toml
+cp .env.example.toml .env.toml
 ```
 
 edit `.env.toml` as needed.
