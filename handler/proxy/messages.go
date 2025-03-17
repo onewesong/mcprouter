@@ -1,4 +1,4 @@
-package api
+package proxy
 
 import (
 	"fmt"
@@ -6,13 +6,13 @@ import (
 
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
 	"github.com/chatmcp/mcprouter/service/mcpclient"
-	"github.com/chatmcp/mcprouter/service/sse"
+	"github.com/chatmcp/mcprouter/service/proxy"
 	"github.com/labstack/echo/v4"
 )
 
 // Messages is a handler for the messages endpoint
 func Messages(c echo.Context) error {
-	ctx := sse.GetSSEContext(c)
+	ctx := proxy.GetSSEContext(c)
 	if ctx == nil {
 		return c.String(http.StatusInternalServerError, "Failed to get SSE context")
 	}
@@ -41,6 +41,12 @@ func Messages(c echo.Context) error {
 			fmt.Printf("connect to mcp server failed: %v\n", err)
 			return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
 		}
+
+		if err := _client.Error(); err != nil {
+			fmt.Printf("mcp server run failed: %v\n", err)
+			return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
+		}
+
 		session.SetClient(_client)
 		ctx.StoreSession(sessionID, session)
 
@@ -51,7 +57,7 @@ func Messages(c echo.Context) error {
 		return nil
 	}
 
-	response := sse.ForwardRequest(client, request)
+	response := client.ForwardRequest(request)
 
 	if response != nil {
 		session.SendMessage(response.String())

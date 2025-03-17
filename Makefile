@@ -8,8 +8,11 @@ build-linux-amd64:
 docker-build:build-linux-amd64
 	docker build -f Dockerfile -t ${_svr_name} .
 
-dev:
-	air -c .air.toml server
+proxy:
+	air -c .air.toml proxy
+
+api:
+	air -c .air.toml api
 
 tidy:
 	go mod tidy

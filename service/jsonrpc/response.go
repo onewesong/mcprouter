@@ -4,10 +4,9 @@ import "encoding/json"
 
 // Response is a JSON-RPC response.
 type Response struct {
-	JSONRPC string      `json:"jsonrpc"`
-	Result  interface{} `json:"result,omitempty"`
-	Error   *Error      `json:"error,omitempty"`
-	ID      interface{} `json:"id"`
+	BaseResponse
+	Result interface{} `json:"result,omitempty"`
+	Error  *Error      `json:"error,omitempty"`
 }
 
 // String returns the string representation of the response.
@@ -20,17 +19,32 @@ func (r *Response) String() string {
 // NewResultResponse creates a new result response.
 func NewResultResponse(result interface{}, id interface{}) *Response {
 	return &Response{
-		JSONRPC: JSONRPC_VERSION,
-		Result:  result,
-		ID:      id,
+		BaseResponse: BaseResponse{
+			JSONRPC: JSONRPC_VERSION,
+			ID:      id,
+		},
+		Result: result,
 	}
 }
 
 // NewErrorResponse creates a new error response.
 func NewErrorResponse(err *Error, id interface{}) *Response {
 	return &Response{
-		JSONRPC: JSONRPC_VERSION,
-		Error:   err,
-		ID:      id,
+		BaseResponse: BaseResponse{
+			JSONRPC: JSONRPC_VERSION,
+			ID:      id,
+		},
+		Error: err,
 	}
+}
+
+// UnmarshalResponse unmarshals a JSON-RPC response.
+func UnmarshalResponse(data []byte) (*Response, error) {
+	var j Response
+
+	if err := json.Unmarshal(data, &j); err != nil {
+		return nil, err
+	}
+
+	return &j, nil
 }

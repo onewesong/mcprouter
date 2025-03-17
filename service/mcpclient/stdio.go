@@ -17,8 +17,10 @@ type StdioClient struct {
 	cmd      *exec.Cmd
 	stdin    io.WriteCloser
 	stdout   *bufio.Reader
+	stderr   *bufio.Reader
 	done     chan struct{}
-	messages map[int64]chan *jsonrpc.Response // store mcp server response messages
+	messages map[int64]chan *jsonrpc.Response // store stdout messages
+	err      chan error                       // store stderr messages
 	mu       sync.RWMutex
 }
 
@@ -40,17 +42,42 @@ func NewStdioClient(command string) (*StdioClient, error) {
 		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
 
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stderr pipe: %w", err)
+	}
+
 	client := &StdioClient{
 		cmd:      cmd,
 		stdin:    stdin,
 		stdout:   bufio.NewReader(stdout),
+		stderr:   bufio.NewReader(stderr),
 		done:     make(chan struct{}),
 		messages: make(map[int64]chan *jsonrpc.Response),
+		err:      make(chan error, 1),
 	}
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start command: %w", err)
 	}
+
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			errmsg := scanner.Text()
+			fmt.Printf("stderr: %s\n", errmsg)
+			// client.err <- fmt.Errorf("mcp server run failed: %s", errmsg)
+			// client.Close()
+			// return
+		}
+
+		if err := scanner.Err(); err != nil {
+			client.err <- fmt.Errorf("stderr scanner error: %w", err)
+			client.Close()
+		}
+	}()
+
+	fmt.Printf("mcp server running with command: %s\n", command)
 
 	ready := make(chan struct{})
 	go func() {
@@ -71,6 +98,7 @@ func (c *StdioClient) listen() {
 
 		default:
 			message, err := c.stdout.ReadBytes('\n')
+			fmt.Printf("stdout read message: %s\n", string(message))
 			if err != nil {
 				if err != io.EOF {
 					fmt.Printf("failed to read message: %v\n", err)
@@ -106,6 +134,21 @@ func (c *StdioClient) listen() {
 	}
 }
 
+// ForwardRequest forwards a JSON-RPC request to the MCP server and returns the response
+func (c *StdioClient) ForwardRequest(request *jsonrpc.Request) *jsonrpc.Response {
+	// fmt.Printf("forward request: %+v\n", request)
+
+	response, err := c.SendRequest(request)
+	if err != nil {
+		fmt.Printf("failed to forward request: %v\n", err)
+		return jsonrpc.NewErrorResponse(jsonrpc.ErrorProxyError, request.ID)
+	}
+
+	// fmt.Printf("forward response: %+v\n", response)
+
+	return response
+}
+
 func (c *StdioClient) SendRequest(request *jsonrpc.Request) (*jsonrpc.Response, error) {
 	message, err := json.Marshal(request)
 	if err != nil {
@@ -118,6 +161,8 @@ func (c *StdioClient) SendRequest(request *jsonrpc.Request) (*jsonrpc.Response, 
 		if _, err := c.stdin.Write(message); err != nil {
 			return nil, fmt.Errorf("failed to write request message: %w", err)
 		}
+
+		fmt.Printf("stdin write message: %s\n", string(message))
 
 		return nil, nil
 	}
@@ -133,18 +178,31 @@ func (c *StdioClient) SendRequest(request *jsonrpc.Request) (*jsonrpc.Response, 
 		return nil, fmt.Errorf("failed to write request message: %w", err)
 	}
 
+	fmt.Printf("stdin write message: %s\n", string(message))
+
 	for {
 		select {
 		case <-c.done:
 			return nil, fmt.Errorf("client closed")
-
+		case err := <-c.err:
+			return nil, err
 		case response := <-messages:
 			return response, nil
 		}
 	}
 }
 
-// Close closes the client.
+// Error returns the error message from stderr
+func (c *StdioClient) Error() error {
+	select {
+	case err := <-c.err:
+		return err
+	default:
+		return nil
+	}
+}
+
+// Close client
 func (c *StdioClient) Close() error {
 	close(c.done)
 	if err := c.stdin.Close(); err != nil {

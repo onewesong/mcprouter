@@ -4,10 +4,20 @@ import "encoding/json"
 
 // Request is a JSON-RPC request.
 type Request struct {
-	JSONRPC string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params,omitempty"`
-	ID      interface{} `json:"id,omitempty"`
+	BaseRequest
+	Params interface{} `json:"params,omitempty"`
+}
+
+// NewRequest creates a new JSON-RPC request.
+func NewRequest(method string, params interface{}, id interface{}) *Request {
+	return &Request{
+		BaseRequest: BaseRequest{
+			JSONRPC: JSONRPC_VERSION,
+			Method:  method,
+			ID:      id,
+		},
+		Params: params,
+	}
 }
 
 // UnmarshalRequest unmarshals a JSON-RPC request.

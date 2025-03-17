@@ -25,6 +25,8 @@ func GetCommand(key string) string {
 func getRemoteCommand(key string) string {
 	apiUrl := viper.GetString("remote_apis.get_server_command")
 
+	fmt.Printf("get remote command from %s, with key: %s\n", apiUrl, key)
+
 	params := map[string]string{
 		"server_key": key,
 	}

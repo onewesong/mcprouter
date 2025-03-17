@@ -1,18 +1,18 @@
-package api
+package proxy
 
 import (
 	"fmt"
 	"net/http"
 
 	"github.com/chatmcp/mcprouter/service/mcpserver"
-	"github.com/chatmcp/mcprouter/service/sse"
+	"github.com/chatmcp/mcprouter/service/proxy"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
 // SSE is a handler for the sse endpoint
 func SSE(c echo.Context) error {
-	ctx := sse.GetSSEContext(c)
+	ctx := proxy.GetSSEContext(c)
 	if ctx == nil {
 		return c.String(http.StatusInternalServerError, "Failed to get SSE context")
 	}
@@ -29,14 +29,14 @@ func SSE(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Server command not found")
 	}
 
-	writer, err := sse.NewSSEWriter(c)
+	writer, err := proxy.NewSSEWriter(c)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	// store session
 	sessionID := uuid.New().String()
-	session := sse.NewSSESession(writer, key, command)
+	session := proxy.NewSSESession(writer, key, command)
 	ctx.StoreSession(sessionID, session)
 	defer ctx.DeleteSession(sessionID)
 

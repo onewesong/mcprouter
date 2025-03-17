@@ -1,4 +1,4 @@
-package sse
+package proxy
 
 import (
 	"errors"
