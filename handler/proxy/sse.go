@@ -64,7 +64,8 @@ func SSE(c echo.Context) error {
 			writer.SendMessage(message)
 		case <-req.Context().Done():
 			fmt.Println("sse request done")
-			// session.Close()
+			ctx.DeleteClient(session.Key())
+			session.Close()
 			return nil
 		}
 	}

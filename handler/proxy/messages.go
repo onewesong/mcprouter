@@ -32,7 +32,9 @@ func Messages(c echo.Context) error {
 		return ctx.JSONRPCError(jsonrpc.ErrorParseError, nil)
 	}
 
-	client := session.Client()
+	sseKey := session.Key()
+
+	client := ctx.GetClient(sseKey)
 
 	if request.Method == "initialize" && client == nil {
 		command := session.Command()
@@ -47,14 +49,14 @@ func Messages(c echo.Context) error {
 			return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
 		}
 
-		session.SetClient(_client)
+		ctx.StoreClient(sseKey, _client)
 		ctx.StoreSession(sessionID, session)
 
 		client = _client
 	}
 
 	if client == nil {
-		return nil
+		return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
 	}
 
 	response := client.ForwardRequest(request)

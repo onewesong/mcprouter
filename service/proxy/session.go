@@ -12,7 +12,7 @@ type SSESession struct {
 	done     chan struct{} // done channel
 	messages chan string   // event queue
 	key      string        // client request key
-	command  string
+	command  string        // server run command
 	client   *mcpclient.StdioClient
 }
 
@@ -74,6 +74,7 @@ func (s *SSESession) Close() {
 func (s *SSESession) CloseClient() {
 	if s.client != nil {
 		s.client.Close()
+		fmt.Printf("client closed\n")
 	}
 }
 

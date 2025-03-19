@@ -11,6 +11,7 @@ import (
 type SSEServer struct {
 	server   *echo.Echo // http server built with echo
 	sessions *sync.Map  // sessions store
+	clients  *sync.Map  // clients store
 }
 
 // NewSSEServer will create SSE server
@@ -18,12 +19,13 @@ func NewSSEServer() *SSEServer {
 	return &SSEServer{
 		server:   echo.New(),
 		sessions: &sync.Map{},
+		clients:  &sync.Map{},
 	}
 }
 
 // Route will create the routes for http server
 func (s *SSEServer) Route(route func(e *echo.Echo)) {
-	s.server.Use(createSSEMiddleware(s.sessions))
+	s.server.Use(createSSEMiddleware(s.sessions, s.clients))
 	route(s.server)
 }
 
