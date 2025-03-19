@@ -53,13 +53,22 @@ func Messages(c echo.Context) error {
 		ctx.StoreSession(sessionID, session)
 
 		client = _client
+
+		client.OnNotification(func(message []byte) {
+			fmt.Printf("received notification: %s\n", message)
+			session.SendMessage(string(message))
+		})
 	}
 
 	if client == nil {
 		return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
 	}
 
-	response := client.ForwardRequest(request)
+	response, err := client.ForwardMessage(request)
+	if err != nil {
+		fmt.Printf("forward message failed: %v\n", err)
+		return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
+	}
 
 	if response != nil {
 		session.SendMessage(response.String())

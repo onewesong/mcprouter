@@ -9,7 +9,10 @@ import (
 // ListTools lists the tools available in the MCP server.
 func (c *StdioClient) ListTools() (*jsonrpc.ListToolsResult, error) {
 	request := jsonrpc.NewRequest(jsonrpc.MethodListTools, nil, 1)
-	response := c.ForwardRequest(request)
+	response, err := c.ForwardMessage(request)
+	if err != nil {
+		return nil, err
+	}
 
 	resultB, err := json.Marshal(response.Result)
 	if err != nil {
@@ -27,7 +30,10 @@ func (c *StdioClient) ListTools() (*jsonrpc.ListToolsResult, error) {
 // CallTool calls a tool with the given name and arguments.
 func (c *StdioClient) CallTool(params *jsonrpc.CallToolParams) (*jsonrpc.CallToolResult, error) {
 	request := jsonrpc.NewRequest(jsonrpc.MethodCallTool, params, 1)
-	response := c.ForwardRequest(request)
+	response, err := c.ForwardMessage(request)
+	if err != nil {
+		return nil, err
+	}
 
 	resultB, err := json.Marshal(response.Result)
 	if err != nil {

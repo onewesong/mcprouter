@@ -10,7 +10,10 @@ import (
 func (c *StdioClient) Initialize(params *jsonrpc.InitializeParams) (*jsonrpc.InitializeResult, error) {
 	request := jsonrpc.NewRequest(jsonrpc.MethodInitialize, params, 0)
 
-	response := c.ForwardRequest(request)
+	response, err := c.ForwardMessage(request)
+	if err != nil {
+		return nil, err
+	}
 
 	resultB, err := json.Marshal(response.Result)
 	if err != nil {
@@ -29,7 +32,10 @@ func (c *StdioClient) Initialize(params *jsonrpc.InitializeParams) (*jsonrpc.Ini
 func (c *StdioClient) NotificationsInitialized() error {
 	request := jsonrpc.NewRequest(jsonrpc.MethodInitializedNotification, nil, nil)
 
-	c.ForwardRequest(request)
+	_, err := c.ForwardMessage(request)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -22,11 +22,11 @@ func NewRequest(method string, params interface{}, id interface{}) *Request {
 
 // UnmarshalRequest unmarshals a JSON-RPC request.
 func UnmarshalRequest(data []byte) (*Request, error) {
-	var j Request
+	var r Request
 
-	if err := json.Unmarshal(data, &j); err != nil {
+	if err := json.Unmarshal(data, &r); err != nil {
 		return nil, err
 	}
 
-	return &j, nil
+	return &r, nil
 }
