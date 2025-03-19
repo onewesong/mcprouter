@@ -263,7 +263,17 @@ func (c *StdioClient) Error() error {
 
 // Close client
 func (c *StdioClient) Close() error {
-	close(c.done)
+	c.mu.Lock()
+	select {
+	case <-c.done:
+		// Channel is already closed
+		c.mu.Unlock()
+		return nil
+	default:
+		close(c.done)
+		c.mu.Unlock()
+	}
+
 	if err := c.stdin.Close(); err != nil {
 		return fmt.Errorf("failed to close stdin: %w", err)
 	}

@@ -109,10 +109,12 @@ func (c *APIContext) Connect() (*mcpclient.StdioClient, error) {
 			Version: proxy.ProxyClientVersion,
 		},
 	}); err != nil {
+		client.Close()
 		return nil, fmt.Errorf("connection initialize failed")
 	}
 
 	if err := client.NotificationsInitialized(); err != nil {
+		client.Close()
 		return nil, fmt.Errorf("connection notifications initialized failed")
 	}
 
