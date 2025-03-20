@@ -1,10 +1,17 @@
 package jsonrpc
 
+import "fmt"
+
 // Error is a JSON-RPC error.
 type Error struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
+}
+
+// Error returns the string representation of the error.
+func (e *Error) Error() string {
+	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
 }
 
 // NewError creates a new JSON-RPC error.

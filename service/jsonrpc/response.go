@@ -16,6 +16,16 @@ func (r *Response) String() string {
 	return string(b)
 }
 
+// UnmarshalResult unmarshals the result into a given value.
+func (r *Response) UnmarshalResult(v interface{}) error {
+	b, err := json.Marshal(r.Result)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(b, v)
+}
+
 // NewResultResponse creates a new result response.
 func NewResultResponse(result interface{}, id interface{}) *Response {
 	return &Response{

@@ -1,8 +1,6 @@
 package mcpclient
 
 import (
-	"encoding/json"
-
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
 )
 
@@ -15,13 +13,12 @@ func (c *StdioClient) Initialize(params *jsonrpc.InitializeParams) (*jsonrpc.Ini
 		return nil, err
 	}
 
-	resultB, err := json.Marshal(response.Result)
-	if err != nil {
-		return nil, err
+	if response.Error != nil {
+		return nil, response.Error
 	}
 
 	result := &jsonrpc.InitializeResult{}
-	if err := json.Unmarshal(resultB, result); err != nil {
+	if err := response.UnmarshalResult(result); err != nil {
 		return nil, err
 	}
 
