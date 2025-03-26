@@ -90,12 +90,15 @@ func SSE(c echo.Context) error {
 		case message := <-session.Messages():
 			// Reset idle timer on message activity
 			resetIdleTimer()
-			
+
 			if err := writer.SendMessage(message); err != nil {
 				fmt.Printf("sse failed to send message to session %s: %v\n", sessionID, err)
 				session.Close() // Close session on send error
 				return nil      // Exit the handler
 			}
+		case <-session.Done():
+			fmt.Printf("session %s closed \n", sessionID)
+			return nil
 		case <-req.Context().Done():
 			fmt.Println("sse request done")
 			session.Close()
