@@ -59,3 +59,8 @@ func (s *SSEWriter) SendData(data string) error {
 func (s *SSEWriter) SendMessage(message string) error {
 	return s.SendEventData("message", message)
 }
+
+// SendHeartbeat will send the message to the client
+func (s *SSEWriter) SendHeartbeat() error {
+	return s.SendEventData("heartbeat", ":\n")
+}
