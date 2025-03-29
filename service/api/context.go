@@ -29,7 +29,7 @@ type APIResponse struct {
 // APIContext is the context for the API request
 type APIContext struct {
 	echo.Context
-	command string
+	serverConfig *mcpserver.ServerConfig
 }
 
 func createAPIMiddleware() echo.MiddlewareFunc {
@@ -49,12 +49,12 @@ func createAPIMiddleware() echo.MiddlewareFunc {
 				return ctx.RespNoAuthMsg("no apikey")
 			}
 
-			command := mcpserver.GetCommand(apikey)
-			if command == "" {
+			serverConfig := mcpserver.GetServerConfig(apikey)
+			if serverConfig == nil {
 				return ctx.RespNoAuthMsg("invalid apikey")
 			}
 
-			ctx.command = command
+			ctx.serverConfig = serverConfig
 
 			return next(ctx)
 		}
@@ -86,12 +86,19 @@ func (c *APIContext) Valid(req interface{}) error {
 	return nil
 }
 
-func (c *APIContext) Command() string {
-	return c.command
+// ServerConfig returns the server config
+func (c *APIContext) ServerConfig() *mcpserver.ServerConfig {
+	return c.serverConfig
 }
 
+// ServerCommand returns the server command
+func (c *APIContext) ServerCommand() string {
+	return c.ServerConfig().Command
+}
+
+// Connect connects to the mcp server
 func (c *APIContext) Connect() (*mcpclient.StdioClient, error) {
-	command := c.Command()
+	command := c.ServerCommand()
 	if command == "" {
 		return nil, fmt.Errorf("invalid command")
 	}

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os/exec"
 	"sync"
+	"time"
 
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
 	"github.com/tidwall/gjson"
@@ -106,7 +107,7 @@ func (c *StdioClient) listen() {
 
 		default:
 			message, err := c.stdout.ReadBytes('\n')
-			fmt.Printf("stdout read message: %s, %v\n", message, err)
+			// fmt.Printf("stdout read message: %s, %v\n", message, err)
 
 			if err != nil {
 				if err != io.EOF {
@@ -197,11 +198,17 @@ func (c *StdioClient) SendMessage(message []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to write request message: %w", err)
 	}
 
-	fmt.Printf("stdin write request message: %s\n", message)
+	// fmt.Printf("stdin write request message: %s\n", message)
+
+	timeout := time.After(30 * time.Second)
 
 	// wait for response
 	for {
 		select {
+		case <-timeout:
+			fmt.Println("timeout waiting for response after 30 seconds")
+			c.Close()
+			return nil, fmt.Errorf("timeout waiting for response after 30 seconds")
 		case <-c.done:
 			fmt.Println("client closed with no response")
 			return nil, fmt.Errorf("client closed with no response")

@@ -7,7 +7,7 @@ import (
 
 	"github.com/chatmcp/mcprouter/service/mcpserver"
 	"github.com/chatmcp/mcprouter/service/proxy"
-	"github.com/google/uuid"
+	"github.com/chatmcp/mcprouter/util"
 	"github.com/labstack/echo/v4"
 )
 
@@ -25,9 +25,9 @@ func SSE(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Key is required")
 	}
 
-	command := mcpserver.GetCommand(key)
-	if command == "" {
-		return c.String(http.StatusBadRequest, "Server command not found")
+	serverConfig := mcpserver.GetServerConfig(key)
+	if serverConfig == nil {
+		return c.String(http.StatusBadRequest, "Invalid server config")
 	}
 
 	writer, err := proxy.NewSSEWriter(c)
@@ -35,9 +35,22 @@ func SSE(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
+	// sessionID := uuid.New().String()
+	sessionID := util.MD5(key)
+
+	proxyInfo := &proxy.ProxyInfo{
+		ServerKey:          key,
+		SSERequestTime:     time.Now(),
+		SessionID:          sessionID,
+		ServerUUID:         serverConfig.ServerUUID,
+		ServerConfigName:   serverConfig.ServerName,
+		ServerShareProcess: serverConfig.ShareProcess,
+		ServerCommand:      serverConfig.Command,
+		ServerCommandHash:  serverConfig.CommandHash,
+	}
+
 	// store session
-	sessionID := uuid.New().String()
-	session := proxy.NewSSESession(writer, key, command)
+	session := proxy.NewSSESession(writer, proxyInfo)
 	ctx.StoreSession(sessionID, session)
 	defer ctx.DeleteSession(sessionID)
 
@@ -68,10 +81,10 @@ func SSE(c echo.Context) error {
 				return
 			case <-heartbeatTicker.C:
 				// Send heartbeat comment
-				if err := writer.SendHeartbeat(); err != nil {
-					session.Close()
-					return
-				}
+				// if err := writer.SendHeartbeat(); err != nil {
+				// 	session.Close()
+				// 	return
+				// }
 			case <-idleTimer.C:
 				// Close connection due to inactivity
 				session.Close()

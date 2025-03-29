@@ -40,5 +40,5 @@ var (
 	ErrorInternalError = NewError(-32603, "Internal error", nil)
 
 	// ErrorProxyError is the error returned when the proxy error occurs.
-	ErrorProxyError = NewError(-32000, "Proxy error", nil)
+	ErrorProxyError = NewError(-32000, "Proxy error, Please restart client", nil)
 )

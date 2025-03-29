@@ -8,34 +8,42 @@ import (
 
 // SSESession is a session for SSE request
 type SSESession struct {
-	writer   *SSEWriter
-	done     chan struct{} // done channel
-	messages chan string   // event queue
-	key      string        // client request key
-	command  string        // server run command
-	client   *mcpclient.StdioClient
+	writer    *SSEWriter
+	done      chan struct{} // done channel
+	messages  chan string   // event queue
+	proxyInfo *ProxyInfo
+	client    *mcpclient.StdioClient
 }
 
 // NewSSESession will create a new SSE session
-func NewSSESession(w *SSEWriter, key string, command string) *SSESession {
+func NewSSESession(w *SSEWriter, proxyInfo *ProxyInfo) *SSESession {
 	return &SSESession{
-		writer:   w,
-		done:     make(chan struct{}),
-		messages: make(chan string, 100), // store messages
-		key:      key,
-		command:  command,
-		client:   nil,
+		writer:    w,
+		done:      make(chan struct{}),
+		messages:  make(chan string, 100), // store messages
+		proxyInfo: proxyInfo,
+		client:    nil,
 	}
+}
+
+// ProxyInfo returns the proxy info of the session
+func (s *SSESession) ProxyInfo() *ProxyInfo {
+	return s.proxyInfo
 }
 
 // Key returns the key of the session
 func (s *SSESession) Key() string {
-	return s.key
+	return s.proxyInfo.ServerKey
 }
 
 // Command returns the command of the session
 func (s *SSESession) Command() string {
-	return s.command
+	return s.proxyInfo.ServerCommand
+}
+
+// SetProxyInfo sets the proxy info of the session
+func (s *SSESession) SetProxyInfo(proxyInfo *ProxyInfo) {
+	s.proxyInfo = proxyInfo
 }
 
 // SetClient sets the client of the session

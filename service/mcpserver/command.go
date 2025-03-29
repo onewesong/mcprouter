@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,21 +12,39 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// GetCommand returns the command for the given key
-func GetCommand(key string) string {
-	command := viper.GetString(fmt.Sprintf("mcp_server_commands.%s", key))
-	if command == "" {
-		return getRemoteCommand(key)
+// GetServerCommand returns the command for the given key
+func GetServerCommand(key string) string {
+	config := GetServerConfig(key)
+	if config == nil {
+		return ""
 	}
 
-	return command
+	return config.Command
 }
 
-// getRemoteCommand returns the command for the given key from the remote API
-func getRemoteCommand(key string) string {
-	apiUrl := viper.GetString("remote_apis.get_server_command")
+// GetServerConfig returns the config for the given key
+func GetServerConfig(key string) *ServerConfig {
+	config := &ServerConfig{}
+	err := viper.UnmarshalKey(fmt.Sprintf("mcp_servers.%s", key), config)
 
-	fmt.Printf("get remote command from %s, with key: %s\n", apiUrl, key)
+	if config.Command == "" {
+		fmt.Printf("get local config failed: %v, try to get remote config\n", err)
+
+		config, err = getRemoteServerConfig(key)
+		if err != nil {
+			fmt.Printf("get remote config failed: %v\n", err)
+			return nil
+		}
+	}
+
+	return config
+}
+
+// getRemoteServerConfig returns the config for the given key from the remote API
+func getRemoteServerConfig(key string) (*ServerConfig, error) {
+	apiUrl := viper.GetString("remote_apis.get_server_config")
+
+	fmt.Printf("get remote config from %s, with key: %s\n", apiUrl, key)
 
 	params := map[string]string{
 		"server_key": key,
@@ -33,21 +52,33 @@ func getRemoteCommand(key string) string {
 
 	jsonData, err := json.Marshal(params)
 	if err != nil {
-		return ""
+		return nil, err
 	}
 
 	response, err := http.Post(apiUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return ""
+		return nil, err
 	}
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return ""
+		return nil, err
 	}
 
 	data := gjson.ParseBytes(body)
-	command := data.Get("data.server_command").String()
 
-	return command
+	config := &ServerConfig{
+		ServerUUID:   data.Get("data.server_uuid").String(),
+		ServerName:   data.Get("data.server_name").String(),
+		ServerKey:    data.Get("data.server_key").String(),
+		Command:      data.Get("data.command").String(),
+		CommandHash:  data.Get("data.command_hash").String(),
+		ShareProcess: data.Get("data.share_process").Bool(),
+	}
+
+	if config.CommandHash == "" {
+		config.CommandHash = fmt.Sprintf("%x", md5.Sum([]byte(config.Command)))
+	}
+
+	return config, nil
 }
