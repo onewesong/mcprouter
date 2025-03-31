@@ -1,9 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
 	"github.com/chatmcp/mcprouter/service/mcpclient"
@@ -30,6 +32,8 @@ type APIResponse struct {
 type APIContext struct {
 	echo.Context
 	serverConfig *mcpserver.ServerConfig
+	clientInfo   *jsonrpc.ClientInfo
+	proxyInfo    *proxy.ProxyInfo
 }
 
 func createAPIMiddleware() echo.MiddlewareFunc {
@@ -39,22 +43,34 @@ func createAPIMiddleware() echo.MiddlewareFunc {
 				Context: c,
 			}
 
-			authorization := c.Request().Header.Get("Authorization")
+			header := c.Request().Header
+
+			authorization := header.Get("Authorization")
 			if authorization == "" {
 				return ctx.RespNoAuthMsg("no authorization header")
 			}
 
-			apikey := strings.TrimPrefix(authorization, "Bearer ")
+			apikey := strings.TrimSpace(strings.ReplaceAll(authorization, "Bearer", ""))
 			if apikey == "" {
-				return ctx.RespNoAuthMsg("no apikey")
+				return ctx.RespNoAuthMsg("no authorization key")
 			}
 
 			serverConfig := mcpserver.GetServerConfig(apikey)
-			if serverConfig == nil {
-				return ctx.RespNoAuthMsg("invalid apikey")
+			if serverConfig == nil || serverConfig.Command == "" {
+				return ctx.RespNoAuthMsg("invalid authorization key")
 			}
 
 			ctx.serverConfig = serverConfig
+
+			clientInfo := header.Get("X-Client-Info")
+			if clientInfo == "" {
+				return ctx.RespNoAuthMsg("no client info")
+			}
+
+			ctx.clientInfo = &jsonrpc.ClientInfo{}
+			if err := json.Unmarshal([]byte(clientInfo), ctx.clientInfo); err != nil {
+				return ctx.RespNoAuthMsg("invalid client info")
+			}
 
 			return next(ctx)
 		}
@@ -86,6 +102,20 @@ func (c *APIContext) Valid(req interface{}) error {
 	return nil
 }
 
+// ProxyInfo returns the proxy info
+func (c *APIContext) ProxyInfo() *proxy.ProxyInfo {
+	return c.proxyInfo
+}
+
+func (c *APIContext) SetProxyInfo(proxyInfo *proxy.ProxyInfo) {
+	c.proxyInfo = proxyInfo
+}
+
+// ClientInfo returns the client info
+func (c *APIContext) ClientInfo() *jsonrpc.ClientInfo {
+	return c.clientInfo
+}
+
 // ServerConfig returns the server config
 func (c *APIContext) ServerConfig() *mcpserver.ServerConfig {
 	return c.serverConfig
@@ -98,6 +128,26 @@ func (c *APIContext) ServerCommand() string {
 
 // Connect connects to the mcp server
 func (c *APIContext) Connect() (*mcpclient.StdioClient, error) {
+	serverConfig := c.ServerConfig()
+	clientInfo := c.ClientInfo()
+
+	header := c.Request().Header
+
+	proxyInfo := &proxy.ProxyInfo{
+		ClientName:         clientInfo.Name,
+		ClientVersion:      clientInfo.Version,
+		ServerUUID:         serverConfig.ServerUUID,
+		ServerKey:          serverConfig.ServerKey,
+		ServerConfigName:   serverConfig.ServerName,
+		ServerShareProcess: serverConfig.ShareProcess,
+		ServerCommand:      serverConfig.Command,
+		ServerCommandHash:  serverConfig.CommandHash,
+		ConnectionTime:     time.Now(),
+		RequestTime:        time.Now(),
+		RequestID:          header.Get("X-Request-ID"),
+		RequestFrom:        header.Get("X-Request-From"),
+	}
+
 	command := c.ServerCommand()
 	if command == "" {
 		return nil, fmt.Errorf("invalid command")
@@ -108,17 +158,27 @@ func (c *APIContext) Connect() (*mcpclient.StdioClient, error) {
 		return nil, fmt.Errorf("connect to mcp server failed")
 	}
 
-	if _, err := client.Initialize(&jsonrpc.InitializeParams{
+	// initialize get server info
+	result, err := client.Initialize(&jsonrpc.InitializeParams{
 		ProtocolVersion: jsonrpc.JSONRPC_VERSION,
 		Capabilities:    jsonrpc.ClientCapabilities{},
 		ClientInfo: jsonrpc.ClientInfo{
 			Name:    proxy.ProxyClientName,
 			Version: proxy.ProxyClientVersion,
 		},
-	}); err != nil {
+	})
+
+	if err != nil {
 		client.Close()
 		return nil, fmt.Errorf("connection initialize failed")
 	}
+
+	proxyInfo.ServerName = result.ServerInfo.Name
+	proxyInfo.ServerVersion = result.ServerInfo.Version
+	proxyInfo.JSONRPCVersion = jsonrpc.JSONRPC_VERSION
+	proxyInfo.ProtocolVersion = result.ProtocolVersion
+
+	c.SetProxyInfo(proxyInfo)
 
 	if err := client.NotificationsInitialized(); err != nil {
 		client.Close()

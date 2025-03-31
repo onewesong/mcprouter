@@ -1,5 +1,5 @@
 @baseUrl = http://127.0.0.1:8027
-@serverKey = 5yxvtum8cmnuig
+@serverKey = t1xb7mm8wrqfz9
 
 ### get server tools
 POST {{baseUrl}}/v1/list-tools

@@ -119,10 +119,12 @@ func Messages(c echo.Context) error {
 	}
 
 	proxyInfo.ResponseTime = time.Now()
-	proxyInfo.ResponseDuration = time.Since(proxyInfo.RequestTime)
+	costTime := proxyInfo.ResponseTime.Sub(proxyInfo.RequestTime)
+	proxyInfo.CostTime = costTime.Milliseconds()
+
 	proxyInfoB, _ := json.Marshal(proxyInfo)
 
-	fmt.Printf("proxyInfo: %s, cost: %f\n", string(proxyInfoB), proxyInfo.ResponseDuration.Seconds())
+	fmt.Printf("proxyInfo: %s\n", string(proxyInfoB))
 
 	return ctx.JSONRPCResponse(response)
 }

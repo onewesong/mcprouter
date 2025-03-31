@@ -44,8 +44,6 @@ func GetServerConfig(key string) *ServerConfig {
 func getRemoteServerConfig(key string) (*ServerConfig, error) {
 	apiUrl := viper.GetString("remote_apis.get_server_config")
 
-	fmt.Printf("get remote config from %s, with key: %s\n", apiUrl, key)
-
 	params := map[string]string{
 		"server_key": key,
 	}
@@ -66,6 +64,9 @@ func getRemoteServerConfig(key string) (*ServerConfig, error) {
 	}
 
 	data := gjson.ParseBytes(body)
+	if data.Get("code").Int() != 0 {
+		return nil, fmt.Errorf("get remote config failed: %s", data.Get("message").String())
+	}
 
 	config := &ServerConfig{
 		ServerUUID:   data.Get("data.server_uuid").String(),

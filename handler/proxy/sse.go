@@ -40,7 +40,7 @@ func SSE(c echo.Context) error {
 
 	proxyInfo := &proxy.ProxyInfo{
 		ServerKey:          key,
-		SSERequestTime:     time.Now(),
+		ConnectionTime:     time.Now(),
 		SessionID:          sessionID,
 		ServerUUID:         serverConfig.ServerUUID,
 		ServerConfigName:   serverConfig.ServerName,

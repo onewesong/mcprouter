@@ -1,6 +1,10 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
+	"time"
+
 	"github.com/chatmcp/mcprouter/service/api"
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
 	"github.com/labstack/echo/v4"
@@ -26,13 +30,26 @@ func CallTool(c echo.Context) error {
 	}
 	defer client.Close()
 
-	callToolResult, err := client.CallTool(&jsonrpc.CallToolParams{
+	proxyInfo := ctx.ProxyInfo()
+	proxyInfo.RequestMethod = jsonrpc.MethodCallTool
+
+	requestParams := &jsonrpc.CallToolParams{
 		Name:      req.Name,
 		Arguments: req.Arguments,
-	})
+	}
+
+	proxyInfo.RequestParams = requestParams
+
+	callToolResult, err := client.CallTool(requestParams)
 	if err != nil {
 		return ctx.RespErr(err)
 	}
+
+	proxyInfo.ResponseTime = time.Now()
+	proxyInfo.CostTime = proxyInfo.ResponseTime.Sub(proxyInfo.RequestTime).Milliseconds()
+
+	proxyInfoB, _ := json.Marshal(proxyInfo)
+	fmt.Printf("proxyInfo: %s\n", string(proxyInfoB))
 
 	return ctx.RespData(callToolResult)
 }
