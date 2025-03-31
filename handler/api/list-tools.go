@@ -28,6 +28,8 @@ func ListTools(c echo.Context) error {
 		return ctx.RespErr(err)
 	}
 
+	proxyInfo.ResponseResult = tools
+
 	proxyInfo.ResponseTime = time.Now()
 	proxyInfo.CostTime = proxyInfo.ResponseTime.Sub(proxyInfo.RequestTime).Milliseconds()
 

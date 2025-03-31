@@ -45,6 +45,8 @@ func CallTool(c echo.Context) error {
 		return ctx.RespErr(err)
 	}
 
+	proxyInfo.ResponseResult = callToolResult
+
 	proxyInfo.ResponseTime = time.Now()
 	proxyInfo.CostTime = proxyInfo.ResponseTime.Sub(proxyInfo.RequestTime).Milliseconds()
 

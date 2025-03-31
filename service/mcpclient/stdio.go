@@ -273,7 +273,6 @@ func (c *StdioClient) Close() error {
 	c.mu.Lock()
 	select {
 	case <-c.done:
-		// Channel is already closed
 		c.mu.Unlock()
 		return nil
 	default:
@@ -281,9 +280,38 @@ func (c *StdioClient) Close() error {
 		c.mu.Unlock()
 	}
 
-	if err := c.stdin.Close(); err != nil {
-		return fmt.Errorf("failed to close stdin: %w", err)
+	stdinClosed := make(chan error, 1)
+	stdinWaiting := make(chan struct{})
+	go func() {
+		close(stdinWaiting)
+		stdinClosed <- c.stdin.Close()
+	}()
+	<-stdinWaiting
+
+	select {
+	case err := <-stdinClosed:
+		if err != nil {
+			return fmt.Errorf("failed to close stdin: %w", err)
+		}
+	case <-time.After(3 * time.Second):
+		return fmt.Errorf("timeout while closing stdin")
 	}
 
-	return c.cmd.Wait()
+	cmdClosed := make(chan error, 1)
+	cmdWaiting := make(chan struct{})
+	go func() {
+		close(cmdWaiting)
+		cmdClosed <- c.cmd.Wait()
+	}()
+	<-cmdWaiting
+
+	select {
+	case err := <-cmdClosed:
+		return err
+	case <-time.After(5 * time.Second):
+		if err := c.cmd.Process.Kill(); err != nil {
+			return fmt.Errorf("failed to kill process: %w", err)
+		}
+		return fmt.Errorf("process killed after timeout")
+	}
 }

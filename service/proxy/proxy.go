@@ -23,7 +23,7 @@ type ProxyInfo struct {
 	ServerName         string      `json:"server_name"`
 	ServerVersion      string      `json:"server_version"`
 	ResponseTime       time.Time   `json:"response_time"`
-	ResponseResult     string      `json:"response_result"`
+	ResponseResult     interface{} `json:"response_result"`
 	ResponseError      string      `json:"response_error"`
 	CostTime           int64       `json:"cost_time"`
 }
