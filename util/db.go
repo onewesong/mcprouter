@@ -43,7 +43,11 @@ func InitDBWithName(name string) error {
 
 	fmt.Printf("init db %s with dsn: %s\n", name, dsn)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// https://github.com/go-gorm/postgres
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dsn,
+		PreferSimpleProtocol: true, // disables implicit prepared statement usage
+	}), &gorm.Config{})
 
 	if err != nil {
 		return err
