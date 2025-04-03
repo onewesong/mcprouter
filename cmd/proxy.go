@@ -31,6 +31,13 @@ var proxyCmd = &cobra.Command{
 			return
 		}
 
+		if viper.GetBool("app.use_db") && viper.GetString("app.db_name") != "" {
+			if err := util.InitDBWithName(viper.GetString("app.db_name")); err != nil {
+				fmt.Printf("init db failed with name: %s, %v\n", viper.GetString("app.db_name"), err)
+				return
+			}
+		}
+
 		port := viper.GetInt("proxy_server.port")
 		if port == 0 {
 			port = 8025

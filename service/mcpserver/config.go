@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/chatmcp/mcprouter/model"
 	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
 )
@@ -30,7 +31,14 @@ func GetServerConfig(key string) *ServerConfig {
 	config := &ServerConfig{}
 	err := viper.UnmarshalKey(fmt.Sprintf("mcp_servers.%s", key), config)
 
-	if config.Command == "" {
+	if config.Command == "" && viper.GetBool("app.use_db") {
+		config, err = getDBServerConfig(key)
+		if err != nil {
+			fmt.Printf("get db config failed: %v\n", err)
+		}
+	}
+
+	if config == nil || config.Command == "" {
 		fmt.Printf("get local config failed: %v, try to get remote config\n", err)
 
 		config, err = getRemoteServerConfig(key)
@@ -42,6 +50,31 @@ func GetServerConfig(key string) *ServerConfig {
 	}
 
 	return config
+}
+
+// getDBServerConfig returns the config for the given key from the database
+func getDBServerConfig(key string) (*ServerConfig, error) {
+	serverkey, err := model.FindServerkeyByServerKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	project, err := model.FindProjectByUUID(serverkey.ServerUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ServerConfig{
+		ServerUUID:   serverkey.ServerUUID,
+		ServerName:   serverkey.ServerName,
+		ServerKey:    serverkey.ServerKey,
+		Command:      serverkey.ServerCommand,
+		CommandHash:  serverkey.ServerParams,
+		ShareProcess: true,
+		ServerType:   project.SSEProvider,
+		ServerURL:    project.SSEURL,
+		ServerParams: serverkey.ServerParams,
+	}, nil
 }
 
 // getRemoteServerConfig returns the config for the given key from the remote API
