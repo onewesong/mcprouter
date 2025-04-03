@@ -31,6 +31,7 @@ func GetServerConfig(key string) *ServerConfig {
 		fmt.Printf("get local config failed: %v, try to get remote config\n", err)
 
 		config, err = getRemoteServerConfig(key)
+		fmt.Printf("get remote config: %+v\n", config)
 		if err != nil {
 			fmt.Printf("get remote config failed: %v\n", err)
 			return nil
@@ -68,16 +69,12 @@ func getRemoteServerConfig(key string) (*ServerConfig, error) {
 		return nil, fmt.Errorf("get remote config failed: %s", data.Get("message").String())
 	}
 
-	config := &ServerConfig{
-		ServerUUID:   data.Get("data.server_uuid").String(),
-		ServerName:   data.Get("data.server_name").String(),
-		ServerKey:    data.Get("data.server_key").String(),
-		Command:      data.Get("data.command").String(),
-		CommandHash:  data.Get("data.command_hash").String(),
-		ShareProcess: data.Get("data.share_process").Bool(),
+	config := &ServerConfig{}
+	if err = json.Unmarshal([]byte(data.Get("data").String()), config); err != nil {
+		return nil, err
 	}
 
-	if config.CommandHash == "" {
+	if config.Command != "" && config.CommandHash == "" {
 		config.CommandHash = fmt.Sprintf("%x", md5.Sum([]byte(config.Command)))
 	}
 

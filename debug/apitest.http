@@ -1,15 +1,18 @@
 @baseUrl = http://127.0.0.1:8027
-@serverKey = t1xb7mm8wrqfz9
+@serverKey = xxx
+@clientInfo = {"name": "mcprouter-client", "version": "0.0.1"}
 
 ### get server tools
 POST {{baseUrl}}/v1/list-tools
 Content-Type: application/json
 Authorization: Bearer {{serverKey}}
+X-Client-Info: {{clientInfo}}
 
 ### call tool
 POST {{baseUrl}}/v1/call-tool
 Content-Type: application/json
 Authorization: Bearer {{serverKey}}
+X-Client-Info: {{clientInfo}}
 
 {
   "name": "fetch",

@@ -18,6 +18,8 @@ type ProxyInfo struct {
 	ServerKey          string      `json:"server_key"`
 	ServerConfigName   string      `json:"server_config_name"`
 	ServerShareProcess bool        `json:"server_share_process"`
+	ServerType         string      `json:"server_type"`
+	ServerURL          string      `json:"server_url"`
 	ServerCommand      string      `json:"server_command"`
 	ServerCommandHash  string      `json:"server_command_hash"`
 	ServerName         string      `json:"server_name"`

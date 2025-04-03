@@ -10,11 +10,14 @@ import (
 	"time"
 
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
+	"github.com/chatmcp/mcprouter/service/mcpserver"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 // StdioClient is a client that uses stdin and stdout to communicate with the backend mcp server.
 type StdioClient struct {
+	serverConfig  *mcpserver.ServerConfig
 	cmd           *exec.Cmd
 	stdin         io.WriteCloser
 	stdout        *bufio.Reader
@@ -28,11 +31,11 @@ type StdioClient struct {
 }
 
 // NewStdioClient creates a new StdioClient.
-func NewStdioClient(command string) (*StdioClient, error) {
+func NewStdioClient(serverConfig *mcpserver.ServerConfig) (*StdioClient, error) {
 	cmd := exec.Command(
 		"sh",
 		"-c",
-		command,
+		serverConfig.Command,
 	)
 
 	stdin, err := cmd.StdinPipe()
@@ -51,13 +54,14 @@ func NewStdioClient(command string) (*StdioClient, error) {
 	}
 
 	client := &StdioClient{
-		cmd:      cmd,
-		stdin:    stdin,
-		stdout:   bufio.NewReader(stdout),
-		stderr:   bufio.NewReader(stderr),
-		done:     make(chan struct{}),
-		messages: make(map[int64]chan []byte),
-		err:      make(chan error, 1),
+		serverConfig: serverConfig,
+		cmd:          cmd,
+		stdin:        stdin,
+		stdout:       bufio.NewReader(stdout),
+		stderr:       bufio.NewReader(stderr),
+		done:         make(chan struct{}),
+		messages:     make(map[int64]chan []byte),
+		err:          make(chan error, 1),
 	}
 
 	// run command
@@ -92,7 +96,7 @@ func NewStdioClient(command string) (*StdioClient, error) {
 	}()
 	<-ready
 
-	fmt.Printf("mcp server running with command: %s\n", command)
+	fmt.Printf("mcp server running with command: %s\n", serverConfig.Command)
 
 	return client, nil
 }
@@ -156,12 +160,102 @@ func (c *StdioClient) listen() {
 	}
 }
 
+// Error returns the error message from stderr
+func (c *StdioClient) Error() error {
+	select {
+	case err := <-c.err:
+		return err
+	default:
+		return nil
+	}
+}
+
+// Close client
+func (c *StdioClient) Close() error {
+	c.mu.Lock()
+	select {
+	case <-c.done:
+		c.mu.Unlock()
+		return nil
+	default:
+		close(c.done)
+		c.mu.Unlock()
+	}
+
+	stdinClosed := make(chan error, 1)
+	stdinWaiting := make(chan struct{})
+	go func() {
+		close(stdinWaiting)
+		stdinClosed <- c.stdin.Close()
+	}()
+	<-stdinWaiting
+
+	select {
+	case err := <-stdinClosed:
+		if err != nil {
+			return fmt.Errorf("failed to close stdin: %w", err)
+		}
+	case <-time.After(3 * time.Second):
+		return fmt.Errorf("timeout while closing stdin")
+	}
+
+	cmdClosed := make(chan error, 1)
+	cmdWaiting := make(chan struct{})
+	go func() {
+		close(cmdWaiting)
+		cmdClosed <- c.cmd.Wait()
+	}()
+	<-cmdWaiting
+
+	select {
+	case err := <-cmdClosed:
+		return err
+	case <-time.After(5 * time.Second):
+		if err := c.cmd.Process.Kill(); err != nil {
+			return fmt.Errorf("failed to kill process: %w", err)
+		}
+		return fmt.Errorf("process killed after timeout")
+	}
+}
+
+// OnNotification adds a notification handler
+func (c *StdioClient) OnNotification(handler func(message []byte)) {
+	c.nmu.Lock()
+	c.notifications = append(c.notifications, handler)
+	c.nmu.Unlock()
+}
+
 // SendMessage sends a JSON-RPC message to the MCP server and returns the response
 func (c *StdioClient) SendMessage(message []byte) ([]byte, error) {
 	// parsed message
 	msg := gjson.ParseBytes(message)
 	if msg.Get("jsonrpc").String() != jsonrpc.JSONRPC_VERSION {
 		return nil, fmt.Errorf("invalid request message: %s", message)
+	}
+
+	serverParams := map[string]interface{}{}
+	if c.serverConfig.ServerParams != "" {
+		if err := json.Unmarshal([]byte(c.serverConfig.ServerParams), &serverParams); err != nil {
+			fmt.Printf("failed to unmarshal server params: %v\n", err)
+		}
+	}
+
+	metadata := map[string]interface{}{
+		"auth": serverParams,
+	}
+
+	var err error
+
+	message, err = sjson.SetBytes(message, "params._meta", metadata)
+	if err != nil {
+		return nil, fmt.Errorf("failed to modify message: %w", err)
+	}
+
+	if msg.Get("method").String() == "initialize" {
+		message, err = sjson.SetBytes(message, "params.capabilities.experimental", metadata)
+		if err != nil {
+			return nil, fmt.Errorf("failed to modify initialize message: %w", err)
+		}
 	}
 
 	message = append(message, '\n')
@@ -221,13 +315,6 @@ func (c *StdioClient) SendMessage(message []byte) ([]byte, error) {
 	}
 }
 
-// OnNotification adds a notification handler
-func (c *StdioClient) OnNotification(handler func(message []byte)) {
-	c.nmu.Lock()
-	c.notifications = append(c.notifications, handler)
-	c.nmu.Unlock()
-}
-
 // ForwardMessage forwards a JSON-RPC message to the MCP server and returns the response
 func (c *StdioClient) ForwardMessage(request *jsonrpc.Request) (*jsonrpc.Response, error) {
 	// fmt.Printf("forward request: %+v\n", request)
@@ -258,60 +345,77 @@ func (c *StdioClient) ForwardMessage(request *jsonrpc.Request) (*jsonrpc.Respons
 	return response, nil
 }
 
-// Error returns the error message from stderr
-func (c *StdioClient) Error() error {
-	select {
-	case err := <-c.err:
-		return err
-	default:
-		return nil
+// Initialize initializes the client.
+func (c *StdioClient) Initialize(params *jsonrpc.InitializeParams) (*jsonrpc.InitializeResult, error) {
+	request := jsonrpc.NewRequest(jsonrpc.MethodInitialize, params, 0)
+
+	response, err := c.ForwardMessage(request)
+	if err != nil {
+		return nil, err
 	}
+
+	if response.Error != nil {
+		return nil, response.Error
+	}
+
+	result := &jsonrpc.InitializeResult{}
+	if err := response.UnmarshalResult(result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
-// Close client
-func (c *StdioClient) Close() error {
-	c.mu.Lock()
-	select {
-	case <-c.done:
-		c.mu.Unlock()
-		return nil
-	default:
-		close(c.done)
-		c.mu.Unlock()
-	}
+// NotificationsInitialized sends the initialized notification to the server.
+func (c *StdioClient) NotificationsInitialized() error {
+	request := jsonrpc.NewRequest(jsonrpc.MethodInitializedNotification, nil, nil)
 
-	stdinClosed := make(chan error, 1)
-	stdinWaiting := make(chan struct{})
-	go func() {
-		close(stdinWaiting)
-		stdinClosed <- c.stdin.Close()
-	}()
-	<-stdinWaiting
-
-	select {
-	case err := <-stdinClosed:
-		if err != nil {
-			return fmt.Errorf("failed to close stdin: %w", err)
-		}
-	case <-time.After(3 * time.Second):
-		return fmt.Errorf("timeout while closing stdin")
-	}
-
-	cmdClosed := make(chan error, 1)
-	cmdWaiting := make(chan struct{})
-	go func() {
-		close(cmdWaiting)
-		cmdClosed <- c.cmd.Wait()
-	}()
-	<-cmdWaiting
-
-	select {
-	case err := <-cmdClosed:
+	_, err := c.ForwardMessage(request)
+	if err != nil {
 		return err
-	case <-time.After(5 * time.Second):
-		if err := c.cmd.Process.Kill(); err != nil {
-			return fmt.Errorf("failed to kill process: %w", err)
-		}
-		return fmt.Errorf("process killed after timeout")
 	}
+
+	return nil
+}
+
+// ListTools lists the tools available in the MCP server.
+func (c *StdioClient) ListTools() (*jsonrpc.ListToolsResult, error) {
+	request := jsonrpc.NewRequest(jsonrpc.MethodListTools, nil, 1)
+
+	response, err := c.ForwardMessage(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Error != nil {
+		return nil, response.Error
+	}
+
+	result := &jsonrpc.ListToolsResult{}
+	if err := response.UnmarshalResult(result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// CallTool calls a tool with the given name and arguments.
+func (c *StdioClient) CallTool(params *jsonrpc.CallToolParams) (*jsonrpc.CallToolResult, error) {
+	request := jsonrpc.NewRequest(jsonrpc.MethodCallTool, params, 1)
+
+	response, err := c.ForwardMessage(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Error != nil {
+		return nil, response.Error
+	}
+
+	result := &jsonrpc.CallToolResult{}
+	if err := response.UnmarshalResult(result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

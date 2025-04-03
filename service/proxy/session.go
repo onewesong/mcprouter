@@ -4,26 +4,34 @@ import (
 	"fmt"
 
 	"github.com/chatmcp/mcprouter/service/mcpclient"
+	"github.com/chatmcp/mcprouter/service/mcpserver"
 )
 
 // SSESession is a session for SSE request
 type SSESession struct {
-	writer    *SSEWriter
-	done      chan struct{} // done channel
-	messages  chan string   // event queue
-	proxyInfo *ProxyInfo
-	client    *mcpclient.StdioClient
+	writer       *SSEWriter
+	done         chan struct{} // done channel
+	messages     chan string   // event queue
+	serverConfig *mcpserver.ServerConfig
+	proxyInfo    *ProxyInfo
+	client       mcpclient.Client
 }
 
 // NewSSESession will create a new SSE session
-func NewSSESession(w *SSEWriter, proxyInfo *ProxyInfo) *SSESession {
+func NewSSESession(w *SSEWriter, serverConfig *mcpserver.ServerConfig, proxyInfo *ProxyInfo) *SSESession {
 	return &SSESession{
-		writer:    w,
-		done:      make(chan struct{}),
-		messages:  make(chan string, 100), // store messages
-		proxyInfo: proxyInfo,
-		client:    nil,
+		writer:       w,
+		done:         make(chan struct{}),
+		messages:     make(chan string, 100), // store messages
+		serverConfig: serverConfig,
+		proxyInfo:    proxyInfo,
+		client:       nil,
 	}
+}
+
+// ServerConfig returns the server config of the session
+func (s *SSESession) ServerConfig() *mcpserver.ServerConfig {
+	return s.serverConfig
 }
 
 // ProxyInfo returns the proxy info of the session
@@ -47,12 +55,12 @@ func (s *SSESession) SetProxyInfo(proxyInfo *ProxyInfo) {
 }
 
 // SetClient sets the client of the session
-func (s *SSESession) SetClient(client *mcpclient.StdioClient) {
+func (s *SSESession) SetClient(client mcpclient.Client) {
 	s.client = client
 }
 
 // Client returns the client of the session
-func (s *SSESession) Client() *mcpclient.StdioClient {
+func (s *SSESession) Client() mcpclient.Client {
 	return s.client
 }
 

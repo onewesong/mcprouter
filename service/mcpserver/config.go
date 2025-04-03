@@ -8,4 +8,7 @@ type ServerConfig struct {
 	Command      string `json:"command"`
 	CommandHash  string `json:"command_hash,omitempty"`
 	ShareProcess bool   `json:"share_process,omitempty"`
+	ServerType   string `json:"server_type,omitempty"`
+	ServerURL    string `json:"server_url,omitempty"`
+	ServerParams string `json:"server_params,omitempty"`
 }

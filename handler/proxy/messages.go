@@ -64,8 +64,7 @@ func Messages(c echo.Context) error {
 	client := ctx.GetClient(sseKey)
 
 	if client == nil {
-		command := proxyInfo.ServerCommand
-		_client, err := mcpclient.NewStdioClient(command)
+		_client, err := mcpclient.NewClient(session.ServerConfig())
 		if err != nil {
 			fmt.Printf("connect to mcp server failed: %v\n", err)
 			return ctx.JSONRPCError(jsonrpc.ErrorProxyError, request.ID)
@@ -117,6 +116,8 @@ func Messages(c echo.Context) error {
 		// not notification message, send sse message
 		session.SendMessage(response.String())
 	}
+
+	proxyInfo.ResponseResult = response
 
 	proxyInfo.ResponseTime = time.Now()
 	costTime := proxyInfo.ResponseTime.Sub(proxyInfo.RequestTime)

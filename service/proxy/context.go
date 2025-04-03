@@ -61,14 +61,14 @@ func (c *SSEContext) DeleteSession(key string) {
 }
 
 // StoreClient stores the client in the clients store
-func (c *SSEContext) StoreClient(key string, client *mcpclient.StdioClient) {
+func (c *SSEContext) StoreClient(key string, client mcpclient.Client) {
 	c.clients.Store(key, client)
 }
 
 // GetClient returns the client from the clients store
-func (c *SSEContext) GetClient(key string) *mcpclient.StdioClient {
+func (c *SSEContext) GetClient(key string) mcpclient.Client {
 	if client, ok := c.clients.Load(key); ok {
-		return client.(*mcpclient.StdioClient)
+		return client.(mcpclient.Client)
 	}
 
 	return nil
@@ -77,7 +77,7 @@ func (c *SSEContext) GetClient(key string) *mcpclient.StdioClient {
 // DeleteClient deletes the client from the clients store
 func (c *SSEContext) DeleteClient(key string) {
 	if client, ok := c.clients.Load(key); ok {
-		client.(*mcpclient.StdioClient).Close()
+		client.(mcpclient.Client).Close()
 	}
 
 	c.clients.Delete(key)

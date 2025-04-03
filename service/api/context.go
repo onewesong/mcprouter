@@ -56,8 +56,18 @@ func createAPIMiddleware() echo.MiddlewareFunc {
 			}
 
 			serverConfig := mcpserver.GetServerConfig(apikey)
-			if serverConfig == nil || serverConfig.Command == "" {
+			if serverConfig == nil {
 				return ctx.RespNoAuthMsg("invalid authorization key")
+			}
+
+			if strings.HasSuffix(serverConfig.ServerType, "_rest") {
+				if serverConfig.ServerURL == "" {
+					return ctx.RespNoAuthMsg("invalid server config: without server url")
+				}
+			} else {
+				if serverConfig.Command == "" {
+					return ctx.RespNoAuthMsg("invalid server config: without server command")
+				}
 			}
 
 			ctx.serverConfig = serverConfig
@@ -126,8 +136,13 @@ func (c *APIContext) ServerCommand() string {
 	return c.ServerConfig().Command
 }
 
+// ServerURL returns the server url
+func (c *APIContext) ServerURL() string {
+	return c.ServerConfig().ServerURL
+}
+
 // Connect connects to the mcp server
-func (c *APIContext) Connect() (*mcpclient.StdioClient, error) {
+func (c *APIContext) Connect() (mcpclient.Client, error) {
 	serverConfig := c.ServerConfig()
 	clientInfo := c.ClientInfo()
 
@@ -140,6 +155,8 @@ func (c *APIContext) Connect() (*mcpclient.StdioClient, error) {
 		ServerKey:          serverConfig.ServerKey,
 		ServerConfigName:   serverConfig.ServerName,
 		ServerShareProcess: serverConfig.ShareProcess,
+		ServerType:         serverConfig.ServerType,
+		ServerURL:          serverConfig.ServerURL,
 		ServerCommand:      serverConfig.Command,
 		ServerCommandHash:  serverConfig.CommandHash,
 		ConnectionTime:     time.Now(),
@@ -148,12 +165,7 @@ func (c *APIContext) Connect() (*mcpclient.StdioClient, error) {
 		RequestFrom:        header.Get("X-Request-From"),
 	}
 
-	command := c.ServerCommand()
-	if command == "" {
-		return nil, fmt.Errorf("invalid command")
-	}
-
-	client, err := mcpclient.NewStdioClient(command)
+	client, err := mcpclient.NewClient(serverConfig)
 	if err != nil {
 		return nil, fmt.Errorf("connect to mcp server failed")
 	}
@@ -161,7 +173,13 @@ func (c *APIContext) Connect() (*mcpclient.StdioClient, error) {
 	// initialize get server info
 	result, err := client.Initialize(&jsonrpc.InitializeParams{
 		ProtocolVersion: jsonrpc.JSONRPC_VERSION,
-		Capabilities:    jsonrpc.ClientCapabilities{},
+		Capabilities: jsonrpc.ClientCapabilities{
+			Experimental: map[string]interface{}{
+				"auth": map[string]interface{}{
+					"flomo_api_url": "xxabc",
+				},
+			},
+		},
 		ClientInfo: jsonrpc.ClientInfo{
 			Name:    proxy.ProxyClientName,
 			Version: proxy.ProxyClientVersion,
