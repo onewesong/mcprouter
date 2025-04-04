@@ -15,30 +15,31 @@ import (
 
 // ServerConfig is the config for the remote mcp server
 type ServerConfig struct {
-	ServerUUID   string `json:"server_uuid,omitempty"`
-	ServerName   string `json:"server_name,omitempty"`
-	ServerKey    string `json:"server_key,omitempty"`
-	Command      string `json:"command"`
-	CommandHash  string `json:"command_hash,omitempty"`
-	ShareProcess bool   `json:"share_process,omitempty"`
-	ServerType   string `json:"server_type,omitempty"`
-	ServerURL    string `json:"server_url,omitempty"`
-	ServerParams string `json:"server_params,omitempty"`
+	ServerUUID   string `json:"server_uuid,omitempty" mapstructure:"server_uuid,omitempty"`
+	ServerName   string `json:"server_name,omitempty" mapstructure:"server_name,omitempty"`
+	ServerKey    string `json:"server_key,omitempty" mapstructure:"server_key,omitempty"`
+	Command      string `json:"command,omitempty" mapstructure:"command,omitempty"`
+	CommandHash  string `json:"command_hash,omitempty" mapstructure:"command_hash,omitempty"`
+	ShareProcess bool   `json:"share_process,omitempty" mapstructure:"share_process"`
+	ServerType   string `json:"server_type,omitempty" mapstructure:"server_type,omitempty"`
+	ServerURL    string `json:"server_url,omitempty" mapstructure:"server_url,omitempty"`
+	ServerParams string `json:"server_params,omitempty" mapstructure:"server_params,omitempty"`
 }
 
 // GetServerConfig returns the config for the given key
 func GetServerConfig(key string) *ServerConfig {
 	config := &ServerConfig{}
 	err := viper.UnmarshalKey(fmt.Sprintf("mcp_servers.%s", key), config)
+	fmt.Printf("get server config: %s from local env: %+v, with error: %v\n", key, config, err)
 
-	if config.Command == "" && viper.GetBool("app.use_db") {
+	if (config.Command == "" && config.ServerURL == "") && viper.GetBool("app.use_db") {
 		config, err = getDBServerConfig(key)
 		if err != nil {
 			fmt.Printf("get db config failed: %v\n", err)
 		}
 	}
 
-	if config == nil || config.Command == "" {
+	if config == nil || (config.Command == "" && config.ServerURL == "") {
 		fmt.Printf("get local config failed: %v, try to get remote config\n", err)
 
 		config, err = getRemoteServerConfig(key)

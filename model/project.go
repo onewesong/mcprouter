@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"math/rand"
+	"time"
+)
 
 const (
 	ProjectStatusCreated = "created"
@@ -54,4 +57,124 @@ func FindProjectByUUID(uuid string) (*Project, error) {
 	}
 
 	return project, nil
+}
+
+func GetProjects() ([]*Project, error) {
+	projects := []*Project{}
+	err := db().Where("status = ?", ProjectStatusCreated).Find(&projects).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return projects, nil
+}
+
+// ProjectFilter contains filter options for querying projects
+type ProjectFilter struct {
+	UserUUID   string
+	Status     string
+	Keyword    string
+	Type       string
+	Category   string
+	Tag        string
+	IsFeatured *bool
+	IsOfficial *bool
+	IsRandom   bool
+	AllowCall  *bool
+	Page       int
+	Limit      int
+	OrderBy    string
+}
+
+// GetProjectsWithFilters gets projects with various filters
+func GetProjectsWithFilters(filter ProjectFilter) ([]*Project, error) {
+	// Default values
+	page := 1
+	limit := 60
+	orderBy := "sort"
+
+	// Extract pagination and ordering params if provided
+	if filter.Page > 0 {
+		page = filter.Page
+	}
+	if filter.Limit > 0 {
+		limit = filter.Limit
+	}
+	if filter.OrderBy != "" {
+		orderBy = filter.OrderBy
+	}
+
+	// Start building the query
+	query := db().Model(&Project{})
+
+	if filter.UserUUID != "" {
+		query = query.Where("user_uuid = ?", filter.UserUUID)
+	}
+
+	if filter.Keyword != "" {
+		query = query.Where("name ILIKE ? OR title ILIKE ? OR description ILIKE ?",
+			"%"+filter.Keyword+"%", "%"+filter.Keyword+"%", "%"+filter.Keyword+"%")
+	}
+
+	if filter.Category != "" {
+		query = query.Where("category = ?", filter.Category)
+	} else if filter.Tag != "" {
+		query = query.Where("tags ILIKE ?", "%"+filter.Tag+"%")
+	}
+
+	if filter.IsFeatured != nil {
+		query = query.Where("is_featured = ?", *filter.IsFeatured)
+	}
+
+	if filter.IsOfficial != nil {
+		query = query.Where("is_official = ?", *filter.IsOfficial)
+	}
+
+	if filter.AllowCall != nil {
+		query = query.Where("allow_call = ?", *filter.AllowCall)
+	}
+
+	if filter.Type != "" {
+		if filter.Type == "server" {
+			query = query.Where("type IS NULL OR type = 'server'")
+		} else {
+			query = query.Where("type = ?", filter.Type)
+		}
+	}
+
+	// Apply filters
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	} else {
+		query = query.Where("status = ?", ProjectStatusCreated)
+	}
+
+	// Apply ordering
+	query = query.Order(orderBy + " DESC")
+	query = query.Order("created_at DESC")
+
+	// Apply pagination
+	offset := (page - 1) * limit
+	query = query.Offset(offset).Limit(limit)
+
+	// Enable SQL logging to see the final query
+	query = query.Debug()
+
+	// Execute query
+	projects := []*Project{}
+	err := query.Find(&projects).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Handle random sorting if needed
+	if filter.IsRandom {
+		// Shuffle the projects array for random ordering
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		r.Shuffle(len(projects), func(i, j int) {
+			projects[i], projects[j] = projects[j], projects[i]
+		})
+	}
+
+	return projects, nil
 }

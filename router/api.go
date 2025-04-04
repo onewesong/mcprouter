@@ -8,6 +8,8 @@ import (
 // APIRoute will create the routes for the http server
 func APIRoute(e *echo.Echo) {
 	apiv1 := e.Group("/v1")
+
+	apiv1.POST("/list-servers", api.ListServers)
 	apiv1.POST("/list-tools", api.ListTools)
 	apiv1.POST("/call-tool", api.CallTool)
 }

@@ -1,6 +1,18 @@
 @baseUrl = http://127.0.0.1:8027
-@serverKey = xxx
-@clientInfo = {"name": "mcprouter-client", "version": "0.0.1"}
+@apiKey = xxx
+@serverKey = github
+@clientInfo = {"name": "chatwise", "version": "0.0.1"}
+
+### list servers
+POST {{baseUrl}}/v1/list-servers
+Content-Type: application/json
+Authorization: Bearer {{apiKey}}
+X-Client-Info: {{clientInfo}}
+
+{
+  "page": 1,
+  "limit": 30
+}
 
 ### get server tools
 POST {{baseUrl}}/v1/list-tools
@@ -15,6 +27,8 @@ Authorization: Bearer {{serverKey}}
 X-Client-Info: {{clientInfo}}
 
 {
-  "name": "fetch",
-  "arguments": {"url": "https://mcp.so"}
+  "name": "search_repositories",
+  "arguments": {
+    "query": "shipany"
+  }
 }

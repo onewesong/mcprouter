@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -44,6 +45,8 @@ func createAPIMiddleware() echo.MiddlewareFunc {
 			}
 
 			header := c.Request().Header
+			req := c.Request()
+			path := req.URL.Path
 
 			authorization := header.Get("Authorization")
 			if authorization == "" {
@@ -55,22 +58,31 @@ func createAPIMiddleware() echo.MiddlewareFunc {
 				return ctx.RespNoAuthMsg("no authorization key")
 			}
 
-			serverConfig := mcpserver.GetServerConfig(apikey)
-			if serverConfig == nil {
-				return ctx.RespNoAuthMsg("invalid authorization key")
+			serverKeyPaths := []string{
+				"/v1/list-tools",
+				"/v1/call-tool",
 			}
 
-			if strings.HasSuffix(serverConfig.ServerType, "_rest") {
-				if serverConfig.ServerURL == "" {
-					return ctx.RespNoAuthMsg("invalid server config: without server url")
+			if slices.Contains(serverKeyPaths, path) {
+				serverConfig := mcpserver.GetServerConfig(apikey)
+				if serverConfig == nil {
+					return ctx.RespNoAuthMsg("invalid authorization key")
 				}
+
+				if strings.HasSuffix(serverConfig.ServerType, "_rest") {
+					if serverConfig.ServerURL == "" {
+						return ctx.RespNoAuthMsg("invalid server config: without server url")
+					}
+				} else {
+					if serverConfig.Command == "" {
+						return ctx.RespNoAuthMsg("invalid server config: without server command")
+					}
+				}
+
+				ctx.serverConfig = serverConfig
 			} else {
-				if serverConfig.Command == "" {
-					return ctx.RespNoAuthMsg("invalid server config: without server command")
-				}
+				// todo: check access key
 			}
-
-			ctx.serverConfig = serverConfig
 
 			clientInfo := header.Get("X-Client-Info")
 			if clientInfo == "" {
