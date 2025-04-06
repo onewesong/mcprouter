@@ -71,6 +71,8 @@ func MCP(c echo.Context) error {
 		ServerURL:          serverConfig.ServerURL,
 		ServerCommand:      serverConfig.Command,
 		ServerCommandHash:  serverConfig.CommandHash,
+		RequestID:          header.Get("X-Request-ID"),
+		RequestFrom:        header.Get("X-Request-From"),
 	}
 
 	// log.Printf("request: %+v\n", request)
@@ -91,9 +93,9 @@ func MCP(c echo.Context) error {
 		proxyInfo.ProtocolVersion = params.ProtocolVersion
 		proxyInfo.SessionID = sessionID
 
-		if err := proxy.StoreProxyInfo(sessionID, proxyInfo); err != nil {
-			log.Printf("store proxy info failed: %s, %v\n", sessionID, err)
-		}
+		err := proxy.StoreProxyInfo(sessionID, proxyInfo)
+
+		log.Printf("store proxy info with client info: %s, %v, %s\n", sessionID, err, proxyInfo.ClientName)
 
 		ctx.Response().Header().Set("Mcp-Session-Id", sessionID)
 	} else {
@@ -102,14 +104,12 @@ func MCP(c echo.Context) error {
 			return c.String(http.StatusBadRequest, "Invalid session ID")
 		}
 
-		if _proxyInfo, err := proxy.GetProxyInfo(sessionID); err == nil &&
-			_proxyInfo != nil &&
-			_proxyInfo.ClientName != "" {
-			// load proxy info from cache
+		_proxyInfo, err := proxy.GetProxyInfo(sessionID)
+
+		log.Printf("get proxy info from cache: %s, %v, %+v\n", sessionID, err, _proxyInfo)
+
+		if _proxyInfo != nil && _proxyInfo.SessionID == sessionID {
 			proxyInfo = _proxyInfo
-			log.Printf("load proxy info from cache: %s, %s\n", sessionID, proxyInfo.ClientName)
-		} else {
-			log.Printf("get proxy info failed: %s, %v\n", sessionID, err)
 		}
 	}
 
@@ -171,9 +171,9 @@ func MCP(c echo.Context) error {
 
 			proxyInfo.ResponseResult = response
 
-			if err := proxy.StoreProxyInfo(sessionID, proxyInfo); err != nil {
-				log.Printf("store proxy info failed: %s, %v\n", sessionID, err)
-			}
+			err = proxy.StoreProxyInfo(sessionID, proxyInfo)
+
+			log.Printf("store proxy info with server info: %s, %v, %s\n", sessionID, err, proxyInfo.ServerName)
 		}
 	}
 

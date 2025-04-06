@@ -46,9 +46,8 @@ func StoreProxyInfo(sessionID string, proxyInfo *ProxyInfo) error {
 
 	cacheKey := fmt.Sprintf(proxyInfoKey, sessionID)
 	expires := 30 * 24 * time.Hour // 30 days
-	cli.Set(ctx, cacheKey, b, expires)
 
-	return nil
+	return cli.Set(ctx, cacheKey, b, expires).Err()
 }
 
 // GetProxyInfo gets the proxy info from redis
