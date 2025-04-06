@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/chatmcp/mcprouter/util"
-	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 )
 
@@ -16,13 +15,14 @@ const (
 	proxyInfoKey = "pi_%s"
 )
 
-func getRedisClient() (*redis.Client, error) {
-	cli := util.GetRedisClient(viper.GetString("app.cache_name"))
-	if cli == nil {
-		return nil, fmt.Errorf("redis client not found")
+// 获取Redis操作接口
+func getRedisHandler() (util.RedisHandler, error) {
+	handler := util.GetRedisHandler(viper.GetString("app.cache_name"))
+	if handler == nil {
+		return nil, fmt.Errorf("redis handler not found")
 	}
 
-	return cli, nil
+	return handler, nil
 }
 
 func getRedisContext() (context.Context, context.CancelFunc) {
@@ -34,7 +34,7 @@ func StoreProxyInfo(sessionID string, proxyInfo *ProxyInfo) error {
 	ctx, cancel := getRedisContext()
 	defer cancel()
 
-	cli, err := getRedisClient()
+	handler, err := getRedisHandler()
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func StoreProxyInfo(sessionID string, proxyInfo *ProxyInfo) error {
 	cacheKey := fmt.Sprintf(proxyInfoKey, sessionID)
 	expires := 30 * 24 * time.Hour // 30 days
 
-	return cli.Set(ctx, cacheKey, b, expires).Err()
+	return handler.Set(ctx, cacheKey, b, expires).Err()
 }
 
 // GetProxyInfo gets the proxy info from redis
@@ -55,15 +55,14 @@ func GetProxyInfo(sessionID string) (*ProxyInfo, error) {
 	ctx, cancel := getRedisContext()
 	defer cancel()
 
-	cli, err := getRedisClient()
+	handler, err := getRedisHandler()
 	if err != nil {
 		return nil, err
 	}
 
 	cacheKey := fmt.Sprintf(proxyInfoKey, sessionID)
 
-	b, err := cli.Get(ctx, cacheKey).Bytes()
-
+	b, err := handler.Get(ctx, cacheKey).Bytes()
 	if err != nil || b == nil {
 		return nil, errors.New("cache not found")
 	}
@@ -76,17 +75,18 @@ func GetProxyInfo(sessionID string) (*ProxyInfo, error) {
 	return proxyInfo, nil
 }
 
+// DeleteProxyInfo deletes the proxy info from redis
 func DeleteProxyInfo(sessionID string) error {
 	ctx, cancel := getRedisContext()
 	defer cancel()
 
-	cli, err := getRedisClient()
+	handler, err := getRedisHandler()
 	if err != nil {
 		return err
 	}
 
 	cacheKey := fmt.Sprintf(proxyInfoKey, sessionID)
-	cli.Del(ctx, cacheKey)
+	handler.Del(ctx, cacheKey)
 
 	return nil
 }
