@@ -1,8 +1,8 @@
 package model
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -46,13 +46,7 @@ func CreateServerLog(sl *ServerLog) error {
 		return errors.New("invalid server log")
 	}
 
-	if sl.RequestParams != nil {
-		sl.RequestParams, _ = json.Marshal(sl.RequestParams)
-	}
+	fmt.Printf("save server log: %+v\n", sl)
 
-	if sl.ResponseResult != nil {
-		sl.ResponseResult, _ = json.Marshal(sl.ResponseResult)
-	}
-
-	return db().Table(sl.TableName()).Create(sl).Error
+	return adb().Table(sl.TableName()).Create(sl).Error
 }

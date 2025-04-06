@@ -185,6 +185,13 @@ func MCP(c echo.Context) error {
 
 	proxyInfoB, _ := json.Marshal(proxyInfo)
 
+	if proxyInfo.RequestMethod == "tools/call" {
+		// if err := model.CreateServerLog(proxyInfo.ToServerLog()); err != nil {
+		// 	log.Printf("save server log failed: %v\n", err)
+		// } else {
+		// 	log.Printf("save server log ok: %s\n", string(proxyInfoB))
+		// }
+	}
 	log.Printf("proxyInfo: %s\n", string(proxyInfoB))
 
 	// notification
