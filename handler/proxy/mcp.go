@@ -14,6 +14,7 @@ import (
 	"github.com/chatmcp/mcprouter/service/proxy"
 	"github.com/chatmcp/mcprouter/util"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 )
 
 // MCP is a handler for the mcp endpoint
@@ -186,7 +187,7 @@ func MCP(c echo.Context) error {
 
 	proxyInfoB, _ := json.Marshal(proxyInfo)
 
-	if proxyInfo.RequestMethod == "tools/call" {
+	if viper.GetBool("app.save_log") && proxyInfo.RequestMethod == "tools/call" {
 		if err := model.CreateServerLog(proxyInfo.ToServerLog()); err != nil {
 			log.Printf("save server log failed: %v\n", err)
 		} else {
