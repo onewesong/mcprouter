@@ -190,7 +190,7 @@ func MCP(c echo.Context) error {
 		if err := model.CreateServerLog(proxyInfo.ToServerLog()); err != nil {
 			log.Printf("save server log failed: %v\n", err)
 		} else {
-			log.Printf("save server log ok: %s\n", proxyInfo.RequestID)
+			log.Printf("save server log ok: %v\n", proxyInfo.RequestID)
 		}
 	}
 	log.Printf("proxyInfo: %s\n", string(proxyInfoB))

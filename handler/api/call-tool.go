@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/chatmcp/mcprouter/model"
 	"github.com/chatmcp/mcprouter/service/api"
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
 	"github.com/labstack/echo/v4"
@@ -51,6 +52,14 @@ func CallTool(c echo.Context) error {
 	proxyInfo.CostTime = proxyInfo.ResponseTime.Sub(proxyInfo.RequestTime).Milliseconds()
 
 	proxyInfoB, _ := json.Marshal(proxyInfo)
+
+	if proxyInfo.RequestMethod == "tools/call" {
+		if err := model.CreateServerLog(proxyInfo.ToServerLog()); err != nil {
+			log.Printf("save server log failed: %v\n", err)
+		} else {
+			log.Printf("save server log ok: %s\n", proxyInfo.RequestID)
+		}
+	}
 	log.Printf("proxyInfo: %s\n", string(proxyInfoB))
 
 	return ctx.RespData(callToolResult)

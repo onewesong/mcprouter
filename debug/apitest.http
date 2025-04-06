@@ -1,13 +1,15 @@
 @baseUrl = http://127.0.0.1:8027
 @apiKey = xxx
 @serverKey = brave-search
-@clientInfo = {"name": "chatwise", "version": "0.0.1"}
+@clientInfo = {"name": "mcp-playground", "version": "0.1.1"}
+@requestFrom = "mcp.so"
 
 ### list servers
 POST {{baseUrl}}/v1/list-servers
 Content-Type: application/json
 Authorization: Bearer {{apiKey}}
 X-Client-Info: {{clientInfo}}
+X-Request-From: {{requestFrom}}
 
 {
   "page": 1,
@@ -19,12 +21,14 @@ POST {{baseUrl}}/v1/list-tools
 Content-Type: application/json
 Authorization: Bearer {{serverKey}}
 X-Client-Info: {{clientInfo}}
+X-Request-From: {{requestFrom}}
 
 ### call tool
 POST {{baseUrl}}/v1/call-tool
 Content-Type: application/json
 Authorization: Bearer {{serverKey}}
 X-Client-Info: {{clientInfo}}
+X-Request-From: {{requestFrom}}
 
 {
   "name": "brave_web_search",
