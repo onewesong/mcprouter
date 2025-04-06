@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/chatmcp/mcprouter/model"
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
 	"github.com/chatmcp/mcprouter/service/mcpclient"
 	"github.com/chatmcp/mcprouter/service/mcpserver"
@@ -186,11 +187,11 @@ func MCP(c echo.Context) error {
 	proxyInfoB, _ := json.Marshal(proxyInfo)
 
 	if proxyInfo.RequestMethod == "tools/call" {
-		// if err := model.CreateServerLog(proxyInfo.ToServerLog()); err != nil {
-		// 	log.Printf("save server log failed: %v\n", err)
-		// } else {
-		// 	log.Printf("save server log ok: %s\n", string(proxyInfoB))
-		// }
+		if err := model.CreateServerLog(proxyInfo.ToServerLog()); err != nil {
+			log.Printf("save server log failed: %v\n", err)
+		} else {
+			log.Printf("save server log ok: %s\n", proxyInfo.RequestID)
+		}
 	}
 	log.Printf("proxyInfo: %s\n", string(proxyInfoB))
 

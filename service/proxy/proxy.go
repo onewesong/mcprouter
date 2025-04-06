@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/chatmcp/mcprouter/model"
@@ -37,15 +39,13 @@ type ProxyInfo struct {
 
 // ToServerLog converts a ProxyInfo to a ServerLog
 func (p *ProxyInfo) ToServerLog() *model.ServerLog {
-	return &model.ServerLog{
+	sl := &model.ServerLog{
 		JSONRPCVersion:     p.JSONRPCVersion,
 		ProtocolVersion:    p.ProtocolVersion,
 		ConnectionTime:     p.ConnectionTime,
 		ClientName:         p.ClientName,
 		ClientVersion:      p.ClientVersion,
 		RequestMethod:      p.RequestMethod,
-		RequestParams:      p.RequestParams,
-		RequestID:          p.RequestID,
 		RequestTime:        p.RequestTime,
 		RequestFrom:        p.RequestFrom,
 		SessionID:          p.SessionID,
@@ -60,8 +60,25 @@ func (p *ProxyInfo) ToServerLog() *model.ServerLog {
 		ServerName:         p.ServerName,
 		ServerVersion:      p.ServerVersion,
 		ResponseTime:       p.ResponseTime,
-		ResponseResult:     p.ResponseResult,
 		ResponseError:      p.ResponseError,
 		CostTime:           p.CostTime,
 	}
+
+	if p.RequestID != nil {
+		sl.RequestID = fmt.Sprintf("%v", p.RequestID)
+	}
+
+	if p.RequestParams != nil {
+		if b, err := json.Marshal(p.RequestParams); err == nil {
+			sl.RequestParams = string(b)
+		}
+	}
+
+	if p.ResponseResult != nil {
+		if b, err := json.Marshal(p.ResponseResult); err == nil {
+			sl.ResponseResult = string(b)
+		}
+	}
+
+	return sl
 }
