@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/chatmcp/mcprouter/router"
 	"github.com/chatmcp/mcprouter/service/api"
@@ -31,11 +32,22 @@ var apiCmd = &cobra.Command{
 			return
 		}
 
+		log.Println("config initialized")
+
 		if viper.GetBool("app.use_db") && viper.GetString("app.db_name") != "" {
 			if err := util.InitDBWithName(viper.GetString("app.db_name")); err != nil {
 				fmt.Printf("init db failed with name: %s, %v\n", viper.GetString("app.db_name"), err)
 				return
 			}
+			log.Println("db initialized")
+		}
+
+		if viper.GetBool("app.use_cache") && viper.GetString("app.cache_name") == "redis" {
+			if err := util.InitRedisWithName(viper.GetString("app.cache_name")); err != nil {
+				fmt.Printf("init redis failed with name: %s, %v\n", viper.GetString("app.cache_name"), err)
+				return
+			}
+			log.Println("redis initialized")
 		}
 
 		port := viper.GetInt("api_server.port")

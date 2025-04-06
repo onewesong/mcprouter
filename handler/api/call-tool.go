@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/chatmcp/mcprouter/service/api"
@@ -51,7 +51,7 @@ func CallTool(c echo.Context) error {
 	proxyInfo.CostTime = proxyInfo.ResponseTime.Sub(proxyInfo.RequestTime).Milliseconds()
 
 	proxyInfoB, _ := json.Marshal(proxyInfo)
-	fmt.Printf("proxyInfo: %s\n", string(proxyInfoB))
+	log.Printf("proxyInfo: %s\n", string(proxyInfoB))
 
 	return ctx.RespData(callToolResult)
 }

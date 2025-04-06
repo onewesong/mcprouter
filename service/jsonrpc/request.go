@@ -6,6 +6,8 @@ import "encoding/json"
 type Request struct {
 	BaseRequest
 	Params interface{} `json:"params,omitempty"`
+	Result interface{} `json:"result,omitempty"`
+	Error  *Error      `json:"error,omitempty"`
 }
 
 // NewRequest creates a new JSON-RPC request.

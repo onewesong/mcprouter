@@ -2,6 +2,7 @@ package mcpclient
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/chatmcp/mcprouter/service/jsonrpc"
@@ -23,7 +24,7 @@ type Client interface {
 
 // NewClient creates a new client
 func NewClient(serverConfig *mcpserver.ServerConfig) (Client, error) {
-	fmt.Printf("new client with server config: %+v\n", serverConfig)
+	log.Printf("new client with server config: %+v\n", serverConfig)
 
 	if strings.HasSuffix(serverConfig.ServerType, "_rest") {
 		if serverConfig.ServerURL == "" {

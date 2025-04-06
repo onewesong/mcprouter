@@ -1,6 +1,6 @@
 @baseUrl = http://127.0.0.1:8027
 @apiKey = xxx
-@serverKey = github
+@serverKey = brave-search
 @clientInfo = {"name": "chatwise", "version": "0.0.1"}
 
 ### list servers
@@ -27,8 +27,8 @@ Authorization: Bearer {{serverKey}}
 X-Client-Info: {{clientInfo}}
 
 {
-  "name": "search_repositories",
+  "name": "brave_web_search",
   "arguments": {
-    "query": "shipany"
+    "query": "what is mcp.so"
   }
 }

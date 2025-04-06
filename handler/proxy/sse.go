@@ -18,6 +18,8 @@ func SSE(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to get SSE context")
 	}
 
+	return c.String(http.StatusNotFound, "sse connection not supported now, please use streamable http or stdio connection")
+
 	req := c.Request()
 
 	key := c.Param("key")

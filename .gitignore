@@ -3,3 +3,4 @@ mcprouter*
 .env.toml
 .env.prod.toml
 Makefile
+*.sh

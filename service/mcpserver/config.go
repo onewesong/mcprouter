@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/chatmcp/mcprouter/model"
@@ -30,22 +31,22 @@ type ServerConfig struct {
 func GetServerConfig(key string) *ServerConfig {
 	config := &ServerConfig{}
 	err := viper.UnmarshalKey(fmt.Sprintf("mcp_servers.%s", key), config)
-	fmt.Printf("get server config: %s from local env: %+v, with error: %v\n", key, config, err)
+	log.Printf("get server config: %s from local env: %+v, with error: %v\n", key, config, err)
 
 	if (config.Command == "" && config.ServerURL == "") && viper.GetBool("app.use_db") {
 		config, err = getDBServerConfig(key)
 		if err != nil {
-			fmt.Printf("get db config failed: %v\n", err)
+			log.Printf("get db config failed: %v\n", err)
 		}
 	}
 
 	if config == nil || (config.Command == "" && config.ServerURL == "") {
-		fmt.Printf("get local config failed: %v, try to get remote config\n", err)
+		log.Printf("get local config failed: %v, try to get remote config\n", err)
 
 		config, err = getRemoteServerConfig(key)
-		fmt.Printf("get remote config: %+v\n", config)
+		log.Printf("get remote config: %+v\n", config)
 		if err != nil {
-			fmt.Printf("get remote config failed: %v\n", err)
+			log.Printf("get remote config failed: %v\n", err)
 			return nil
 		}
 	}
@@ -91,7 +92,7 @@ func getRemoteServerConfig(key string) (*ServerConfig, error) {
 		return nil, err
 	}
 
-	fmt.Printf("get remote config from %s, with params: %s\n", apiUrl, jsonData)
+	log.Printf("get remote config from %s, with params: %s\n", apiUrl, jsonData)
 
 	response, err := http.Post(apiUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -104,7 +105,7 @@ func getRemoteServerConfig(key string) (*ServerConfig, error) {
 	}
 
 	data := gjson.ParseBytes(body)
-	fmt.Printf("get remote config with key: %s, response: %s\n", key, data.String())
+	log.Printf("get remote config with key: %s, response: %s\n", key, data.String())
 
 	if data.Get("code").Int() != 0 {
 		return nil, fmt.Errorf("get remote config failed: %s", data.Get("message").String())

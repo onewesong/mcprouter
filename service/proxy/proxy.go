@@ -1,7 +1,12 @@
 package proxy
 
-import "time"
+import (
+	"time"
 
+	"github.com/chatmcp/mcprouter/model"
+)
+
+// ProxyInfo is the info for the proxy
 type ProxyInfo struct {
 	JSONRPCVersion     string      `json:"jsonrpc_version"`
 	ProtocolVersion    string      `json:"protocol_version"`
@@ -28,4 +33,35 @@ type ProxyInfo struct {
 	ResponseResult     interface{} `json:"response_result"`
 	ResponseError      string      `json:"response_error"`
 	CostTime           int64       `json:"cost_time"`
+}
+
+// ToServerLog converts a ProxyInfo to a ServerLog
+func (p *ProxyInfo) ToServerLog() *model.ServerLog {
+	return &model.ServerLog{
+		JSONRPCVersion:     p.JSONRPCVersion,
+		ProtocolVersion:    p.ProtocolVersion,
+		ConnectionTime:     p.ConnectionTime,
+		ClientName:         p.ClientName,
+		ClientVersion:      p.ClientVersion,
+		RequestMethod:      p.RequestMethod,
+		RequestParams:      p.RequestParams,
+		RequestID:          p.RequestID,
+		RequestTime:        p.RequestTime,
+		RequestFrom:        p.RequestFrom,
+		SessionID:          p.SessionID,
+		ServerUUID:         p.ServerUUID,
+		ServerKey:          p.ServerKey,
+		ServerConfigName:   p.ServerConfigName,
+		ServerShareProcess: p.ServerShareProcess,
+		ServerType:         p.ServerType,
+		ServerURL:          p.ServerURL,
+		ServerCommand:      p.ServerCommand,
+		ServerCommandHash:  p.ServerCommandHash,
+		ServerName:         p.ServerName,
+		ServerVersion:      p.ServerVersion,
+		ResponseTime:       p.ResponseTime,
+		ResponseResult:     p.ResponseResult,
+		ResponseError:      p.ResponseError,
+		CostTime:           p.CostTime,
+	}
 }

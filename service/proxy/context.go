@@ -109,5 +109,10 @@ func (c *SSEContext) JSONRPCError(err *jsonrpc.Error, id interface{}) error {
 
 // JSONRPCResponse returns a JSON-RPC response
 func (c *SSEContext) JSONRPCResponse(response *jsonrpc.Response) error {
+	return c.JSON(http.StatusOK, response)
+}
+
+// JSONRPCAcceptResponse returns a JSON-RPC accept response
+func (c *SSEContext) JSONRPCAcceptResponse(response *jsonrpc.Response) error {
 	return c.JSON(http.StatusAccepted, response)
 }
