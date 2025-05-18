@@ -1,6 +1,7 @@
 @baseUrl = http://127.0.0.1:8027
+# @baseUrl = https://rest.mcp.so
 @apiKey = xxx
-@serverKey = brave-search
+@serverKey = time
 @clientInfo = {"name": "mcp-playground", "version": "0.1.1"}
 @requestFrom = "mcp.so"
 
@@ -31,8 +32,8 @@ X-Client-Info: {{clientInfo}}
 X-Request-From: {{requestFrom}}
 
 {
-  "name": "brave_web_search",
+  "name": "get_current_time",
   "arguments": {
-    "query": "what is mcp.so"
+    "timezone": "Asia/Shanghai"
   }
 }

@@ -152,6 +152,7 @@ func (c *RestClient) SendMessage(message []byte) ([]byte, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
