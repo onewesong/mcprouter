@@ -63,6 +63,12 @@ func createAPIMiddleware() echo.MiddlewareFunc {
 				"/v1/call-tool",
 			}
 
+			// 管理接口路径，需要基本的API Key验证
+			adminPaths := []string{
+				"/v1/stop-server",
+				"/v1/list-running-servers",
+			}
+
 			if slices.Contains(serverKeyPaths, path) {
 				serverConfig := mcpserver.GetServerConfig(apikey)
 				if serverConfig == nil {
@@ -79,6 +85,13 @@ func createAPIMiddleware() echo.MiddlewareFunc {
 					}
 				}
 
+				ctx.serverConfig = serverConfig
+			} else if slices.Contains(adminPaths, path) {
+				// 管理接口只需要验证基本的API Key存在，这里可以添加更严格的管理员权限检查
+				serverConfig := mcpserver.GetServerConfig(apikey)
+				if serverConfig == nil {
+					return ctx.RespNoAuthMsg("invalid authorization key for admin operation")
+				}
 				ctx.serverConfig = serverConfig
 			} else {
 				// todo: check access key

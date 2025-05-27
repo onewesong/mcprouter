@@ -12,4 +12,7 @@ func ProxyRoute(e *echo.Echo) {
 	e.POST("/messages", proxy.Messages)
 	// streamable http proxy
 	e.Any("/mcp/:key", proxy.MCP)
+	// management endpoints
+	e.POST("/admin/stop-server", proxy.StopServer)
+	e.GET("/admin/list-clients", proxy.ListClients)
 }

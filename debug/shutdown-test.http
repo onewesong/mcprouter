@@ -1,0 +1,47 @@
+@baseUrl = http://127.0.0.1:8027
+@proxyBaseUrl = http://127.0.0.1:8025
+@apiKey = fetch
+@clientInfo = {"name": "mcp-playground", "version": "0.1.1"}
+@requestFrom = "mcp.so"
+
+### 列出当前运行的MCP服务器 (通过API)
+GET {{baseUrl}}/v1/list-running-servers
+Authorization: Bearer {{apiKey}}
+X-Client-Info: {{clientInfo}}
+X-Request-From: {{requestFrom}}
+
+### 列出当前运行的MCP客户端 (直接访问Proxy)
+GET {{proxyBaseUrl}}/admin/list-clients
+
+### 停止指定的MCP服务器
+POST {{baseUrl}}/v1/stop-server
+Content-Type: application/json
+Authorization: Bearer {{apiKey}}
+X-Client-Info: {{clientInfo}}
+X-Request-From: {{requestFrom}}
+
+{
+  "server_key": "fetch",
+  "force": false
+}
+
+### 强制停止指定的MCP服务器
+POST {{baseUrl}}/v1/stop-server
+Content-Type: application/json
+Authorization: Bearer {{apiKey}}
+X-Client-Info: {{clientInfo}}
+X-Request-From: {{requestFrom}}
+
+{
+  "server_key": "fetch", 
+  "force": true
+}
+
+### 直接向Proxy发送停止请求
+POST {{proxyBaseUrl}}/admin/stop-server
+Content-Type: application/json
+
+{
+  "server_key": "fetch",
+  "force": false
+} 

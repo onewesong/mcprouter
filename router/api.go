@@ -12,4 +12,6 @@ func APIRoute(e *echo.Echo) {
 	apiv1.POST("/list-servers", api.ListServers)
 	apiv1.POST("/list-tools", api.ListTools)
 	apiv1.POST("/call-tool", api.CallTool)
+	apiv1.POST("/stop-server", api.Shutdown)
+	apiv1.GET("/list-running-servers", api.ListRunningServers)
 }

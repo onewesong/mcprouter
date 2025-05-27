@@ -83,6 +83,11 @@ func (c *SSEContext) DeleteClient(key string) {
 	c.clients.Delete(key)
 }
 
+// RangeClients iterates over all clients in the store
+func (c *SSEContext) RangeClients(f func(key, value interface{}) bool) {
+	c.clients.Range(f)
+}
+
 // GetJSONRPCRequest returns the JSON-RPC request from the request body
 func (c *SSEContext) GetJSONRPCRequest() (*jsonrpc.Request, error) {
 	req := c.Request()

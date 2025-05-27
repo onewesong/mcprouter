@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/chatmcp/mcprouter/router"
 	"github.com/chatmcp/mcprouter/service/api"
@@ -11,12 +15,23 @@ import (
 
 var apiConfigFile string
 
-// startAPIServer starts the api server
+// startAPIServer starts the api server with graceful shutdown support
 func startAPIServer(port int) {
 	s := api.NewAPIServer()
-
 	s.Route(router.APIRoute)
-	s.Start(port)
+
+	// Create context that listens for the interrupt signal from the OS.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	log.Printf("API server starting on port %d", port)
+
+	// Start server with context for graceful shutdown
+	if err := s.StartWithContext(ctx, port); err != nil {
+		log.Printf("API server failed to start: %v", err)
+	}
+
+	log.Println("API server stopped gracefully")
 }
 
 // apiCmd represents the api command
